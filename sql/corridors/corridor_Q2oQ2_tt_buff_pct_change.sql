@@ -1,6 +1,6 @@
 ﻿SELECT corridor, direction, left(direction,1)||'B' as dir, period,
-	to_char(100*(q2.tt_med - q1.tt_med)/q1.tt_med, 'FMSG990.0')||'%' AS median_tt,
-	to_char(100*(q2.tt_95th - q1.tt_95th - (q2.tt_med - q1.tt_med))/(q1.tt_95th-q1.tt_med),'FMSG990.0')||'%' AS buffer_time
+	lpad(to_char(100*(q2.tt_med - q1.tt_med)/q1.tt_med, 'FMSG990.0'),4)||'%' AS median_tt,
+	lpad(to_char(100*(q2.tt_95th - q1.tt_95th - (q2.tt_med - q1.tt_med))/(q1.tt_95th-q1.tt_med),'FMSG990.0'),4)||'%' AS buffer_time
   FROM key_corridor_perf q1
   INNER JOIN key_corridor_perf q2 USING (corridor_id, daytype,period)
   INNER JOIN key_corridor_lookup USING (corridor_id)
