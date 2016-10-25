@@ -1,66 +1,16 @@
-
-library(stargazer)
-library(xtable)
-library(reshape2)
 library(plyr)
-library(reshape)
-library(sem)
-library(lme4)
-library(arm)
-library(abind)
-library(sos)
-library(systemfit)
-library(inference)
-library(methods)
-library(spdep)
-library(lmtest)
-library(plm)
-library(gmm)
-library(AER)
-library(gplots)
-library(robust)
 library(data.table)
-library(stats)
-library(FitARMA)
-library(googleVis)
-library(bigmemory.sri)
-library(ff)
-library(ffbase)
 library(ggplot2)
-library(doSNOW)
-library(foreign)
 library(reshape2)
-library(compiler)
-library(sem)
-library(lme4)
-library(arm)
-library(abind)
-library(sos)
-library(systemfit)
-library(inference)
-library(methods)
-library(spdep)
-library(lmtest)
-library(plm)
-library(gmm)
-library(AER)
-library(gplots)
-library(robust)
-library(data.table)
-library(stats)
-library(FitARMA)
-library(googleVis)
-library(bigmemory.sri)
-library(ff)
-library(ffbase)
-library(ggplot2)
 library(broom)
 library(RPostgreSQL)
 
 analysis_year = 2014
 
-# IMPORT FROM POSTGRESQL
-setwd("~/GitHub/bdit_congestion/McMaster Congestion Reporting")
+##############################################
+# IMPORT RAW DATA FROM POSTGRESQL
+##############################################
+
 drv <- dbDriver("PostgreSQL")
 source("connect/connect.R")
 
@@ -70,105 +20,264 @@ impute<-function(a, a.imute){
   ifelse(is.na(a),a.impute,a)
 }
 
-#hour by hour analysis
+##############################################
+# IMPORT MONTHLY/HOURLY/WKDAY SPEED DATA
+##############################################
 
-setwd(paste(fileLoc,"/out/out_11/day.month/",sep="")) #sets the working directory.
-dat.day.month.11 <- ldply(dir(), read.table,  #sep=" ", 
-                             col.names=c("id",
-                                         "tmc", "time.15.continuous", "year", "month", "weekday", "speed.wtd","count", "p05",
-                                         "speed")
-)
+# IMPORT 2014 DATA
+curr_dir <- "/out/out_14/day.month/"
 
-setwd(paste(fileLoc,"/in", sep = "")) #sets the working directory.
-dat.tmc.newADD<-read.table("trafficInrix_Join_Jan27b_tmc_newADD.csv", sep = ",", col.names = c("newADD", "tmc"))
-dat.final.net<-read.table("final_net.csv", sep = ",", header = TRUE)
-dat.speed85<-read.table("INRIX_speed85.txt", header = TRUE)
-torNetwork_UIDs_feb10<-read.table("torNetwork_UIDs_feb10.csv", sep = ",", header = TRUE)
-torNetwork_UIDs_feb10<-unique(torNetwork_UIDs_feb10)
+dat.day.month.14 <- ldply(.data = paste(getwd(),curr_dir,dir(paste(getwd(),curr_dir,sep="")),sep=""), 
+                          read.table, 
+                          col.names=c("id","tmc", "time.15.continuous", "year", "month", "weekday",
+                                      "speed.wtd","count", "p05","speed"))
 
-#NOTE THAT THE 2014 TRAFFIC VOLUMES ARE BASED ON A LINEAR TREND INTERPRETATION BETWEEN 2011 AND 2016 TRAFFIC RESULTS.
-#THE UNITS HERE ARE VOLUMES PER HOUR.  
+# IMPORT 2013 DATA
+curr_dir <- "/out/out_13/day.month/"
 
+dat.day.month.13 <- ldply(.data = paste(getwd(),curr_dir,dir(paste(getwd(),curr_dir,sep="")),sep=""), 
+                          read.table, 
+                          col.names=c("id","tmc", "time.15.continuous", "year", "month", "weekday",
+                                      "speed.wtd","count", "p05","speed"))
 
-dat.14a<-read.table("final_net2014.csv", sep = ",", header = TRUE)
-dat.14.long<-melt(dat.14a, id="newADD")
-colnames(dat.14.long)<-c("newADD", "time.factor1", "volume1")
-time.factor<-as.numeric(dat.14.long$time.factor1)
-volume<-as.numeric(dat.14.long$volume1)
-newADD<-as.numeric(dat.14.long$newADD)
-dat.14.long<-data.frame(cbind(newADD, time.factor, volume))
-rm(time.factor, volume, newADD, dat.14a)
+# IMPORT 2011 DATA
+curr_dir <- "/out/out_11/day.month/"
 
-#miscellaneous clean-up
-colnames(dat.14.long)[colnames(dat.14.long)=="time.factor"]<-"hour"
-colnames(torNetwork_UIDs_feb10)[colnames(torNetwork_UIDs_feb10)=="Tmc"]<-"tmc"
-colnames(dat.final.net)[colnames(dat.final.net)=="Tmc"]<-"tmc"
+dat.day.month.11 <- ldply(.data = paste(getwd(),curr_dir,dir(paste(getwd(),curr_dir,sep="")),sep=""), 
+                          read.table, 
+                          col.names=c("id","tmc", "time.15.continuous", "year", "month", "weekday",
+                                      "speed.wtd","count", "p05","speed"))
 
 
-#READING IN MTO DATA FOR ADJUSTMENTS DOWN THE LINE
-setwd(paste(fileLoc,"/in", sep = "")) #sets the working directory.
-dat.mto.vol<-read.table("mto_04-14-2015.txt", col.names = c("mto.location.id", "weekday", "hour", "mto.volume", "date", "freeway"))
-dat.mto.vol.lookup<-read.table("mto_04-14-2015_lookup.txt", col.names = c("mto.description", "mto.location.id", "newADD", "vds.tvis"))
-names(dat.mto.vol)
-names(dat.mto.vol.lookup)
-dat.mto.vol.lookup<-dat.mto.vol.lookup[,c("mto.location.id", "newADD")]
-dat.mto.vol<-merge(dat.mto.vol, dat.mto.vol.lookup, by = "mto.location.id")
+##############################################
+# IMPORT VARIOUS REFERENCE TABLES
+##############################################
+
+curr_dir <- "in/"
+
+# LOOKUP TABLE, linking newADD to TMC
+dat.tmc.newADD <-
+    read.table(file = paste(curr_dir,"trafficInrix_Join_Jan27b_tmc_newADD.csv",sep=""), 
+               sep = ",", 
+               col.names = c("newADD", "tmc"),
+               header = TRUE)
+
+# REFERENCE TABLE, newADD properties
+dat.final.net <- 
+    read.table(file = paste(curr_dir,"final_net.csv",sep=""), 
+               sep = ",", 
+               header = TRUE)
+
+# FREE FLOW REFERENCE SPEEDS (by TMC), night.speed and 85.speed
+dat.speed85 <-
+    read.table(file = paste(curr_dir,"INRIX_speed85.txt",sep=""), 
+             header = TRUE)
+
+torNetwork_UIDs_feb10 <- 
+    read.table(paste(curr_dir,"torNetwork_UIDs_feb10.csv",sep=""), 
+               sep = ",", 
+               header = TRUE)
+torNetwork_UIDs_feb10 <- unique(torNetwork_UIDs_feb10)
+
+# NOTE THAT THE 2014 TRAFFIC VOLUMES ARE BASED ON A LINEAR TREND INTERPRETATION BETWEEN 2011 AND 2016 TRAFFIC RESULTS.
+# THE UNITS HERE ARE VOLUMES PER HOUR.  
+
+########
+# 2014 #
+########
+dat.14a <-
+    read.table(paste(curr_dir, "final_net2014.csv", sep=""),
+             sep = ",",
+             header = TRUE)
+dat.14a <-
+    melt(dat.14a, id="newADD")
+colnames(dat.14a) <- c("newADD", "time.factor1", "volume1")
+
+time.factor <- as.numeric(dat.14a$time.factor1)
+volume      <- as.numeric(dat.14a$volume1)
+newADD      <- as.numeric(dat.14a$newADD)
+dat.14a     <- data.frame(cbind(newADD, time.factor, volume))
+rm(time.factor, volume, newADD)
+
+########
+# 2013 #
+########
+dat.13a <-
+  read.table(paste(curr_dir, "final_net2013.csv", sep=""),
+             sep = ",",
+             header = TRUE)
+dat.13a <-
+  melt(dat.13a, id="newADD")
+colnames(dat.13a) <- c("newADD", "time.factor1", "volume1")
+
+time.factor <- as.numeric(dat.13a$time.factor1)
+volume      <- as.numeric(dat.13a$volume1)
+newADD      <- as.numeric(dat.13a$newADD)
+dat.13a     <- data.frame(cbind(newADD, time.factor, volume))
+rm(time.factor, volume, newADD)
+
+########
+# 2011 #
+########
+dat.11a <-
+  read.table(paste(curr_dir, "final_net2011.csv", sep=""),
+             sep = ",",
+             header = TRUE)
+dat.11a <-
+  melt(dat.11a, id="newADD")
+colnames(dat.11a) <- c("newADD", "time.factor1", "volume1")
+
+time.factor <- as.numeric(dat.11a$time.factor1)
+volume      <- as.numeric(dat.11a$volume1)
+newADD      <- as.numeric(dat.11a$newADD)
+dat.11a     <- data.frame(cbind(newADD, time.factor, volume))
+rm(time.factor, volume, newADD)
+
+
+# Clean up Column Names
+colnames(dat.14a)[colnames(dat.14a)=="time.factor"] <- "hour"
+colnames(dat.13a)[colnames(dat.13a)=="time.factor"] <- "hour"
+colnames(dat.11a)[colnames(dat.11a)=="time.factor"] <- "hour"
+colnames(torNetwork_UIDs_feb10)[colnames(torNetwork_UIDs_feb10)=="Tmc"] <- "tmc"
+colnames(dat.final.net)[colnames(dat.final.net)=="Tmc"] <- "tmc"
+
+##############################################
+# READ IN MTO DATA
+##############################################
+
+dat.mto.vol <- 
+    read.table(paste(curr_dir,"mto_04-14-2015.txt",sep=""), 
+    col.names = c("mto.location.id", "weekday", "hour", "mto.volume", "date", "freeway"))
+
+dat.mto.vol.lookup <- 
+    read.table(file = paste(curr_dir,"mto_04-14-2015_lookup.txt",sep=""),
+               col.names = c("mto.description", "mto.location.id", "newADD", "vds.tvis"))
+
+dat.mto.vol.lookup <- dat.mto.vol.lookup[,c("mto.location.id", "newADD")]
+dat.mto.vol <- merge(dat.mto.vol, dat.mto.vol.lookup, by = "mto.location.id")
 rm(dat.mto.vol.lookup)
 
 
-############################2014#####################################
+##############################################
+# LOAD (OR CALCULATE) VOLUME ADJUSTMENT MODEL
+##############################################
+
+load(paste(curr_dir, "vol_adj.rda",sep=""))
 
 
-#THIS IS THE PERFORMANCE MEASUREMENT STUFF for 2014
-hour<-floor(dat.day.month.14$time.15.continuous/10)
-unique(hour)
-dat.14<-data.frame(cbind(dat.day.month.14, hour))
+##############################################
+# VOLUME ADJUSTMENTS
+##############################################
+
+########
+# 2014 #
+########
+hour <- floor(dat.day.month.14$time.15.continuous/10)
+dat.14 <- data.frame(cbind(dat.day.month.14, hour))
 rm(hour)
-dat.14<-subset(dat.14, subset = (hour>4&hour<22))
-dat.14<-ddply(dat.14, . (tmc, month, weekday, hour), summarise,
-              speed.wtd=sum(speed.wtd*count)/sum(count)
-)
 
-dat.14<-unique(dat.14)
-dat.14<-subset(dat.14, subset = (hour>4&hour<22))
-dim(dat.14)
-dat.14<-merge(dat.final.net, dat.14, by = "tmc", all = FALSE)
-dat.14<-merge(dat.14, torNetwork_UIDs_feb10, by = "tmc" , all = FALSE)
-dat.14<-merge(dat.14, dat.speed85, by = "tmc" , all = FALSE)
-dat.14<-merge(dat.14, dat.14.long, by = c("hour", "newADD"), all = FALSE)
-weekday.bin<-rep(1,length=dim(dat.14)[1])
-weekday.bin[dat.14$weekday==1| dat.14$weekday==7]<-0
-dat.14<-data.frame(cbind(dat.14, weekday.bin))
-rm(weekday.bin)
+dat.14 <- subset(dat.14, subset = (hour>4&hour<22))
+dat.14 <- 
+    ddply(.data = dat.14,
+          . (tmc, month, weekday, hour),
+          .fun = summarise,
+          speed.wtd=sum(speed.wtd*count)/sum(count)
+      )  
+dat.14 <- unique(dat.14)
 
-#COUNT ADJUSTMENTS ARE CALCULATED HERE.  
-count.adj<-4*predict(lm.11a, dat.14)
-hist(count.adj)
-dat.14<-data.frame(cbind(dat.14, count.adj))
-rm(count.adj)
+dat.14 <- merge(dat.final.net, dat.14, by = "tmc", all = FALSE)
+dat.14 <- merge(dat.14, torNetwork_UIDs_feb10, by = "tmc" , all = FALSE)
+dat.14 <- merge(dat.14, dat.speed85, by = "tmc" , all = FALSE)
+dat.14 <- merge(dat.14, dat.14a, by = c("hour", "newADD"), all = FALSE)
 
-#PROCESSING SO THAT DELAY IS NEVER NEGATIVE
-speed.wtd1<-dat.14$speed.wtd
-speed.wtd1<-pmin(speed.wtd1, dat.14$speed85)
-dat.14<-data.frame(cbind(dat.14, speed.wtd1))
-rm(speed.wtd1)
+dat.14$weekday.bin <- 1
+dat.14$weekday.bin[dat.14$weekday==1| dat.14$weekday==7] <- 0
 
-speed.wtd2<-dat.14$speed.wtd
-speed.wtd2<-pmin(speed.wtd2, dat.14$night.speed)
-dat.14<-data.frame(cbind(dat.14, speed.wtd2))
-rm(speed.wtd2)
+# COUNT ADJUSTMENTS ARE CALCULATED HERE.
+dat.14$count.adj <- 4*predict(lm.11a, dat.14)
+
+# PROCESSING SO THAT DELAY IS NEVER NEGATIVE
+dat.14$speed.wtd1 <- pmin(dat.14$speed.wtd, dat.14$speed85)
+dat.14$speed.wtd2 <- pmin(dat.14$speed.wtd, dat.14$night.speed)
+
+########
+# 2013 #
+########
+hour <- floor(dat.day.month.13$time.15.continuous/10)
+dat.13 <- data.frame(cbind(dat.day.month.13, hour))
+rm(hour)
+
+dat.13 <- subset(dat.13, subset = (hour>4&hour<22))
+dat.13 <- 
+  ddply(.data = dat.13,
+        . (tmc, month, weekday, hour),
+        .fun = summarise,
+        speed.wtd=sum(speed.wtd*count)/sum(count)
+  )  
+dat.13 <- unique(dat.13)
+
+dat.13 <- merge(dat.final.net, dat.13, by = "tmc", all = FALSE)
+dat.13 <- merge(dat.13, torNetwork_UIDs_feb10, by = "tmc" , all = FALSE)
+dat.13 <- merge(dat.13, dat.speed85, by = "tmc" , all = FALSE)
+dat.13 <- merge(dat.13, dat.13a, by = c("hour", "newADD"), all = FALSE)
+
+dat.13$weekday.bin <- 1
+dat.13$weekday.bin[dat.13$weekday==1| dat.13$weekday==7] <- 0
+
+# COUNT ADJUSTMENTS ARE CALCULATED HERE.
+dat.13$count.adj <- 4*predict(lm.11a, dat.13)
+
+# PROCESSING SO THAT DELAY IS NEVER NEGATIVE
+dat.13$speed.wtd1 <- pmin(dat.13$speed.wtd, dat.13$speed85)
+dat.13$speed.wtd2 <- pmin(dat.13$speed.wtd, dat.13$night.speed)
 
 
-#ESTIMATING THE MTO ADJUSTMENTS.  THESE ADJUSTMENTS ARE THEN EMPLOYED FOR ALL THREE OF THE STUDY YEARS
-dat.mto.vol$date<-as.Date(dat.mto.vol$date)
-month<-as.numeric(format(dat.mto.vol$date, format = "%m"))
-dat.mto.vol<-data.frame(cbind(dat.mto.vol, month))
-rm(month)
-year<-rep(2013, length = dim(dat.mto.vol)[1])
-year[dat.mto.vol$mto.location.id>28]<-2014
-hist(year)
-dat.mto.vol<-data.frame(cbind(dat.mto.vol, year))
-rm(year)
+########
+# 2011 #
+########
+hour <- floor(dat.day.month.11$time.15.continuous/10)
+dat.11 <- data.frame(cbind(dat.day.month.11, hour))
+rm(hour)
+
+dat.11 <- subset(dat.11, subset = (hour>4&hour<22))
+dat.11 <- 
+  ddply(.data = dat.11,
+        . (tmc, month, weekday, hour),
+        .fun = summarise,
+        speed.wtd=sum(speed.wtd*count)/sum(count)
+  )  
+dat.11 <- unique(dat.11)
+
+dat.11 <- merge(dat.final.net, dat.11, by = "tmc", all = FALSE)
+dat.11 <- merge(dat.11, torNetwork_UIDs_feb10, by = "tmc" , all = FALSE)
+dat.11 <- merge(dat.11, dat.speed85, by = "tmc" , all = FALSE)
+dat.11 <- merge(dat.11, dat.11a, by = c("hour", "newADD"), all = FALSE)
+
+dat.11$weekday.bin <- 1
+dat.11$weekday.bin[dat.11$weekday==1| dat.11$weekday==7] <- 0
+
+# COUNT ADJUSTMENTS ARE CALCULATED HERE.
+dat.11$count.adj <- 4*predict(lm.11a, dat.11)
+
+# PROCESSING SO THAT DELAY IS NEVER NEGATIVE
+dat.11$speed.wtd1 <- pmin(dat.11$speed.wtd, dat.11$speed85)
+dat.11$speed.wtd2 <- pmin(dat.11$speed.wtd, dat.11$night.speed)
+
+##############################################
+# MTO ADJUSTMENTS
+##############################################
+
+dat.mto.vol$date <- as.Date(dat.mto.vol$date)
+dat.mto.vol$month <- as.numeric(format(dat.mto.vol$date, format = "%m"))
+dat.mto.vol$year <- 2013
+dat.mto.vol$year[dat.mto.vol$mto.location.id > 28] <- 2014
+
+save.image("CITY_TRENDS.RData")
+
+#### START HERE ####
+
+
+
 
 dat.13a<-dat.13[,c("weekday", "month", "hour", "newADD", "count.adj", "CorridorUID")]
 year<-rep(2013, length=dim(dat.13a)[1])
@@ -184,8 +293,6 @@ rm(dat.13a, dat.14a)
 dat.13a.14a<-merge(dat.mto.vol, dat.13a.14a, by = c("weekday", "month", "hour", "newADD", "year"), all = FALSE)
 colnames(dat.13a.14a)[colnames(dat.13a.14a)=="CorridorUID"]<-"CorridorUID1"
 
-#lm.b<-lm(mto.volume~as.factor(CorridorUID1):as.factor(weekday!=1 & weekday !=7):as.factor(hour)
-#           +count.adj:as.factor(weekday!=1 & weekday !=7 ):as.factor(CorridorUID1):as.factor(hour), data = dat.13a.14a)
 lm.b<-lm(mto.volume~as.factor(CorridorUID1)+as.factor(weekday!=1 & weekday !=7)
            +count.adj:as.factor(weekday!=1 & weekday !=7 )+count.adj:as.factor(CorridorUID1), data = dat.13a.14a)
 summary(lm.b)
