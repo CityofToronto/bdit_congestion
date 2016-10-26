@@ -108,3 +108,6 @@ McMaster Congestion Reporting/in/trafficInrix_Join_Jan27b.csv
 McMaster Congestion Reporting/in/trafficInrix_Join_Jan27b_Freeways.csv
 McMaster Congestion Reporting/in/trafficInrix_Join_Jan27b_tmc_newADD.csv
 *.txt
+*.txt
+McMaster Congestion Reporting/.Rhistory
+*.RData

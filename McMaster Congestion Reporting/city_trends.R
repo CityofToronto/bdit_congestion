@@ -1,6 +1,7 @@
 library(plyr)
 library(data.table)
 library(ggplot2)
+library(reshape)
 library(reshape2)
 library(broom)
 library(RPostgreSQL)
@@ -157,6 +158,7 @@ dat.mto.vol.lookup <- dat.mto.vol.lookup[,c("mto.location.id", "newADD")]
 dat.mto.vol <- merge(dat.mto.vol, dat.mto.vol.lookup, by = "mto.location.id")
 rm(dat.mto.vol.lookup)
 
+save.image("CITY_TRENDS.RData")
 
 ##############################################
 # LOAD (OR CALCULATE) VOLUME ADJUSTMENT MODEL
@@ -200,6 +202,8 @@ dat.14$count.adj <- 4*predict(lm.11a, dat.14)
 dat.14$speed.wtd1 <- pmin(dat.14$speed.wtd, dat.14$speed85)
 dat.14$speed.wtd2 <- pmin(dat.14$speed.wtd, dat.14$night.speed)
 
+save.image("CITY_TRENDS.RData")
+
 ########
 # 2013 #
 ########
@@ -231,6 +235,7 @@ dat.13$count.adj <- 4*predict(lm.11a, dat.13)
 dat.13$speed.wtd1 <- pmin(dat.13$speed.wtd, dat.13$speed85)
 dat.13$speed.wtd2 <- pmin(dat.13$speed.wtd, dat.13$night.speed)
 
+save.image("CITY_TRENDS.RData")
 
 ########
 # 2011 #
@@ -263,53 +268,59 @@ dat.11$count.adj <- 4*predict(lm.11a, dat.11)
 dat.11$speed.wtd1 <- pmin(dat.11$speed.wtd, dat.11$speed85)
 dat.11$speed.wtd2 <- pmin(dat.11$speed.wtd, dat.11$night.speed)
 
-##############################################
-# MTO ADJUSTMENTS
-##############################################
-
-dat.mto.vol$date <- as.Date(dat.mto.vol$date)
-dat.mto.vol$month <- as.numeric(format(dat.mto.vol$date, format = "%m"))
-dat.mto.vol$year <- 2013
-dat.mto.vol$year[dat.mto.vol$mto.location.id > 28] <- 2014
-
 save.image("CITY_TRENDS.RData")
+
+
 
 #### START HERE ####
 
 
 
 
-dat.13a<-dat.13[,c("weekday", "month", "hour", "newADD", "count.adj", "CorridorUID")]
-year<-rep(2013, length=dim(dat.13a)[1])
-dat.13a<-data.frame(cbind(dat.13a, year))
+##############################################
+# MTO ADJUSTMENTS
+##############################################
+
+dat.mto.vol$date <- as.Date(dat.mto.vol$date, format = "%d-%m-%Y")
+dat.mto.vol$month <- as.numeric(format(dat.mto.vol$date, format = "%m"))
+dat.mto.vol$year <- 2013
+dat.mto.vol$year[dat.mto.vol$mto.location.id > 28] <- 2014
+
+
+##############################################
+# MTO VOLUME ADJUSTMENTS - MODEL TESTING
+##############################################
+
+dat.13a <- dat.13[,c("weekday", "month", "hour", "newADD", "count.adj", "CorridorUID")]
+dat.13a$year <- 2013
 
 dat.14a<-dat.14[,c("weekday", "month", "hour", "newADD", "count.adj", "CorridorUID")]
-year<-rep(2014, length=dim(dat.14a)[1])
-dat.14a<-data.frame(cbind(dat.14a, year))
+dat.14a$year <- 2014
 
-dat.13a.14a<-data.frame(rbind(dat.13a, dat.14a))
+dat.13a.14a <- data.frame(rbind(dat.13a, dat.14a))
 rm(dat.13a, dat.14a)
 
-dat.13a.14a<-merge(dat.mto.vol, dat.13a.14a, by = c("weekday", "month", "hour", "newADD", "year"), all = FALSE)
-colnames(dat.13a.14a)[colnames(dat.13a.14a)=="CorridorUID"]<-"CorridorUID1"
+dat.13a.14a <- 
+    merge(x = dat.mto.vol, 
+          y = dat.13a.14a, 
+          by = c("weekday", "month", "hour", "newADD", "year"), 
+          all = FALSE)
 
-lm.b<-lm(mto.volume~as.factor(CorridorUID1)+as.factor(weekday!=1 & weekday !=7)
-           +count.adj:as.factor(weekday!=1 & weekday !=7 )+count.adj:as.factor(CorridorUID1), data = dat.13a.14a)
-summary(lm.b)
-plot(fitted(lm.b), resid(lm.b))
-hist(fitted(lm.b))
+dat.13a.14a <- rename(dat.13a.14a, c("CorridorUID"="CorridorUID1"))
 
-lm.c<-lm(mto.volume~as.factor(weekday!=1 & weekday !=7)
-         +count.adj:as.factor(weekday!=1 & weekday !=7 ), data = dat.13a.14a)
-summary(lm.c)
-plot(fitted(lm.c), resid(lm.c))
+lm.b <- 
+    lm(formula = mto.volume~as.factor(CorridorUID1)
+                  + as.factor(weekday!=1 & weekday !=7)
+                  + count.adj:as.factor(weekday!=1 & weekday !=7)
+                  + count.adj:as.factor(CorridorUID1), 
+       data = dat.13a.14a)
+tidy(lm.b)
 
-summary.lm.b<-tidy(lm.b)
-summary.lm.c<-tidy(lm.c)
-setwd("Y:/modeling/out/seasonal_adjustments/") #sets the working directory.
-#write.table(summary.lm.b, file = "summary.lm.b.txt")
-#write.table(summary.lm.c, file = "summary.lm.c.txt")
-rm(summary.lm.b, summary.lm.c)
+lm.c <- 
+    lm(formula = mto.volume ~ as.factor(weekday!=1 & weekday !=7)
+                  + count.adj:as.factor(weekday!=1 & weekday !=7 ), 
+       data = dat.13a.14a)
+tidy(lm.c)
 
 #INTEGRATING MTO ADJUSTMENTS FOR 2014.  NEEDS TO BE DONE FOR OTHER YEARS AS WELL#####
 CorridorUID1<-dat.14$CorridorUID
