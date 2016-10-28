@@ -8,7 +8,7 @@ library(RPostgreSQL)
 library(lme4)
 
 analysis_year = 2014
-
+mi_to_m = 1609.34
 ##############################################
 # IMPORT RAW DATA FROM POSTGRESQL
 ##############################################
@@ -718,168 +718,69 @@ lmer.14e<-lmer(speed.wtd~1+(1|tmc:hour:weekday)+ (1|month),
 
 #THE FOLLOWING CODE CALCULATES THE TRAVEL TIME INDICES FOR EACH OF THE CORRIDORS
 
+tti_summary <- function(x, groups, days, hours) {
+  result <- ddply (x,groups,here(summarise),
+                   tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
+                   tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
+                   tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
+                   tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
+                   tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
+                   tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
+                   speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
+                   speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
+                   speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
+                   delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(mi_to_m*days*hours),
+                   delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(mi_to_m*days*hours),
+                   delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(mi_to_m*days*hours),
+                   delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(mi_to_m*days*hours),
+                   delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(mi_to_m*days*hours),
+                   delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(mi_to_m*days*hours),
+                   vkt.volume=sum(volume*(Length_m/1000))/(days*hours),
+                   vkt.count.adj=sum(count.adj*(Length_m/1000))/(days*hours),
+                   vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(days*hours)
+                )
+  return(result)
+}
+
+
+
 ########
 # 2014 #
 ########
 
 dat.temp <- subset(dat.14, 
                    subset = weekday.bin == 1)
-
 dat.temp$C_UID[dat.temp$C_UID==29.1] <- 84.1
 dat.temp$C_UID[dat.temp$C_UID==29.2] <- 84.2
 dat.temp$C_UID[dat.temp$C_UID==29.3] <- 84.3
 dat.temp$C_UID[dat.temp$C_UID==29.4] <- 84.4
-
-corridor.direct.hourly.perf.14 <- ddply( dat.temp,
-                                         . (hour, C_UID),
-                                         summarise,
-                        tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-                        tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-                        tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-                        tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-                        tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-                        tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-                        speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-                        speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-                        speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-                        delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*12),
-                        delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*12),
-                        delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*12),
-                        delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*12),
-                        delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*12),
-                        delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*12),
-                        vkt.volume=sum(volume*(Length_m/1000))/(5*12),
-                        vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*12),
-                        vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*12)
-                        )
+corridor.direct.hourly.perf.14 <- tti_summary(dat.temp, c("hour", "C_UID"), 5, 12)
 
 
 dat.temp <- subset(dat.14, subset = weekday.bin ==1 )
 dat.temp$CorridorUID [dat.temp$CorridorUID==29] <- 84
-
-corridor.hourly.perf.14 <- ddply( dat.temp,
-                                  . (hour, CorridorUID),
-                                  summarise,
-                        tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-                        tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-                        tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-                        tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-                        tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-                        tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-                        speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-                        speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-                        speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-                        delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*12), #1609.34 adjusts from meters to miles to normalize
-                        delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*12),
-                        delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*12),
-                        delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*12),
-                        delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*12),
-                        delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*12),
-                        vkt.volume=sum(volume*(Length_m/1000))/(5*12),
-                        vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*12),
-                        vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*12)
-                        )
-
-dat.temp <- subset(dat.14, subset = weekday.bin == 1)
-dat.temp$Freeway[dat.temp$Freeway==2] <- 0
-system.hourly.perf.14 <- ddply( dat.temp,
-                                . (hour),
-                                summarise,
-                        tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-                        tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-                        tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-                        tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-                        tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-                        tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-                        speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-                        speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-                        speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-                        delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*12), #1609.34 adjusts from meters to miles to normalize
-                        delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*12),
-                        delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*12),
-                        delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*12),
-                        delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*12),
-                        delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*12),
-                        vkt.volume=sum(volume*(Length_m/1000))/(5*12),
-                        vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*12),
-                        vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*12)
-                        )
-
-dat.temp <- subset(dat.14, subset = weekday.bin == 0)
-dat.temp$Freeway[dat.temp$Freeway==2] <- 0
-system.hourly.perf.14.weekend <- ddply( dat.temp,
-                                        . (hour),
-                                        summarise,
-                        tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-                        tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-                        tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-                        tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-                        tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-                        tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-                        speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-                        speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-                        speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-                        delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*2*12), #1609.34 adjusts from meters to miles to normalize
-                        delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*2*12),
-                        delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*2*12),
-                        delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*2*12),
-                        delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*2*12),
-                        delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*2*12),
-                        vkt.volume=sum(volume*(Length_m/1000))/(2*12),
-                        vkt.count.adj=sum(count.adj*(Length_m/1000))/(2*12),
-                        vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(2*12)
-                        )
+corridor.hourly.perf.14 <- tti_summary(dat.temp, c("hour", "CorridorUID"), 5, 12)
 
 
 dat.temp <- subset(dat.14, subset = weekday.bin == 1)
 dat.temp$Freeway[dat.temp$Freeway==2] <- 0
-fre.art.hourly.perf.14 <- ddply( dat.temp,
-                                 . (hour,Freeway),
-                                 summarise,
-                        tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-                        tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-                        tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-                        tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-                        tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-                        tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-                        speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-                        speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-                        speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-                        delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*12), #1609.34 adjusts from meters to miles to normalize
-                        delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*12),
-                        delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*12),
-                        delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*12),
-                        delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*12),
-                        delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*12),
-                        vkt.volume=sum(volume*(Length_m/1000))/(5*12),
-                        vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*12),
-                        vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*12)
-                        )
+system.hourly.perf.14 <- tti_summary(dat.temp, c("hour"), 5, 12)
+
 
 dat.temp <- subset(dat.14, subset = weekday.bin == 0)
-dat.temp$Freeway[dat.temp$Freeway==2] < -0
-fre.art.hourly.perf.14.weekend <- ddply( dat.temp,
-                                         . (hour, Freeway),
-                                         summarise,
-                        tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-                        tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-                        tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-                        tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-                        tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-                        tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-                        speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-                        speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-                        speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-                        delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*2*12), #1609.34 adjusts from meters to miles to normalize
-                        delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*2*12),
-                        delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*2*12),
-                        delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*2*12),
-                        delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*2*12),
-                        delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*2*12),
-                        vkt.volume=sum(volume*(Length_m/1000))/(2*12),
-                        vkt.count.adj=sum(count.adj*(Length_m/1000))/(2*12),
-                        vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(2*12)
-                        )
+dat.temp$Freeway[dat.temp$Freeway==2] <- 0
+system.hourly.perf.14.weekend <- tti_summary(dat.temp, c("hour"), 2, 12)
+
+
+dat.temp <- subset(dat.14, subset = weekday.bin == 1)
+dat.temp$Freeway[dat.temp$Freeway==2] <- 0
+fre.art.hourly.perf.14 <- tti_summary(dat.temp, c("hour", "Freeway"), 5, 12)
+
+
+dat.temp <- subset(dat.14, subset = weekday.bin == 0)
+dat.temp$Freeway[dat.temp$Freeway==2] <- 0
+fre.art.hourly.perf.14.weekend <- tti_summary(dat.temp, c("hour", "Freeway"), 2, 12)
+
 
 ########
 # 2013 #
@@ -888,28 +789,7 @@ fre.art.hourly.perf.14.weekend <- ddply( dat.temp,
 
 dat.temp <- subset(dat.13, subset = weekday.bin == 1 & (month>8&month<12))
 dat.temp$Freeway[dat.temp$Freeway==2] <- 0
-fre.art.hourly.perf.13.sep.nov <- ddply( dat.temp,
-                                         . (hour, Freeway),
-                                         summarise,
-                        tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-                        tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-                        tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-                        tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-                        tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-                        tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-                        speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-                        speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-                        speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-                        delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*3), #1609.34 adjusts from meters to miles to normalize
-                        delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*3),
-                        delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*3),
-                        delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*3),
-                        delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*3),
-                        delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*3),
-                        vkt.volume=sum(volume*(Length_m/1000))/(5*3),
-                        vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*3),
-                        vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*3)
-                        )
+fre.art.hourly.perf.13.sep.nov <- tti_summary(dat.temp, c("hour", "Freeway"), 5, 3)
 
 ########
 # 2011 #
@@ -917,28 +797,7 @@ fre.art.hourly.perf.13.sep.nov <- ddply( dat.temp,
 
 dat.temp <- subset(dat.11, subset = weekday.bin == 1& (month>8&month<12))
 dat.temp$Freeway[dat.temp$Freeway==2] <- 0
-fre.art.hourly.perf.11.sep.nov <- ddply( dat.temp,
-                                         . (hour, Freeway),
-                                         summarise,
-                        tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-                        tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-                        tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-                        tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-                        tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-                        tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-                        speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-                        speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-                        speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-                        delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*3), #1609.34 adjusts from meters to miles to normalize
-                        delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*3),
-                        delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*3),
-                        delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*3),
-                        delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*3),
-                        delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*3),
-                        vkt.volume=sum(volume*(Length_m/1000))/(5*3),
-                        vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*3),
-                        vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*3)
-                        )
+fre.art.hourly.perf.11.sep.nov <- tti_summary(dat.temp, c("hour", "Freeway"), 5, 3)
 
 ########
 # 2014 #
@@ -946,541 +805,156 @@ fre.art.hourly.perf.11.sep.nov <- ddply( dat.temp,
 
 dat.temp <- subset(dat.14, subset = weekday.bin == 1& (month>8&month<12))
 dat.temp$Freeway[dat.temp$Freeway==2] <- 0
-fre.art.hourly.perf.14.sep.nov <- ddply( dat.temp,
-                                         . (hour, Freeway),
-                                         summarise,
-                        tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-                        tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-                        tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-                        tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-                        tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-                        tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-                        speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-                        speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-                        speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-                        delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*3), #1609.34 adjusts from meters to miles to normalize
-                        delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*3),
-                        delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*3),
-                        delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*3),
-                        delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*3),
-                        delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*3),
-                        vkt.volume=sum(volume*(Length_m/1000))/(5*3),
-                        vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*3),
-                        vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*3)
-                        )
-
-
+fre.art.hourly.perf.14.sep.nov <- tti_summary(dat.temp, c("hour", "Freeway"), 5, 3)
 
 
 dat.temp <- subset(dat.14, subset = hour ==17)
 dat.temp$Freeway[dat.temp$Freeway==2] <- 0
-fre.art.daily.perf.14.5pm <- ddply( dat.temp,
-                                    . (weekday, Freeway),
-                                    summarise,
-                        tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-                        tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-                        tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-                        tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-                        tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-                        tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-                        speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-                        speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-                        speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-                        delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*1*12), #1609.34 adjusts from meters to miles to normalize
-                        delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*1*12), #1 adjusts for number of day-types per week
-                        delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*1*12), # 12 adjusts for number of months per year
-                        delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*1*12),
-                        delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*1*12),
-                        delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*1*12),
-                        vkt.volume=sum(volume*(Length_m/1000))/(1*12),
-                        vkt.count.adj=sum(count.adj*(Length_m/1000))/(1*12),
-                        vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(1*12)
-                        )
+fre.art.daily.perf.14.5pm <- tti_summary(dat.temp, c("weekday", "Freeway"), 1, 12)
+
 
 dat.temp <- (dat.14)
 dat.temp$Freeway[dat.temp$Freeway==2] <- 0
-fre.art.daily.perf.14 <- ddply( dat.temp,
-                                . (weekday, Freeway),
-                                summarise,
-                        tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-                        tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-                        tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-                        tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-                        tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-                        tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-                        speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-                        speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-                        speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-                        delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*1*12), #1609.34 adjusts from meters to miles to normalize
-                        delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*1*12), #1 adjusts for number of day-types per week
-                        delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*1*12), # 12 adjusts for number of months per year
-                        delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*1*12),
-                        delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*1*12),
-                        delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*1*12),
-                        vkt.volume=sum(volume*(Length_m/1000))/(1*12),
-                        vkt.count.adj=sum(count.adj*(Length_m/1000))/(1*12),
-                        vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(1*12)
-                        )
-
+fre.art.daily.perf.14 <- tti_summary(dat.temp, c("weekday", "Freeway"), 1, 12)
 
 
 dat.temp <- subset(dat.14, subset = weekday.bin == 1)
 dat.temp$Freeway[dat.temp$Freeway==2] <- 0
-fre.art.seasonal.perf.14 <- ddply( dat.temp,
-                                   . (month, Freeway),
-                                   summarise,
-                        tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-                        tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-                        tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-                        tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-                        tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-                        tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-                        speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-                        speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-                        speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-                        delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*1), #1609.34 adjusts from meters to miles to normalize
-                        delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*1), #1 adjusts for number of day-types per week
-                        delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*1), # 12 adjusts for number of months per year
-                        delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*1),
-                        delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*1),
-                        delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*1),
-                        vkt.volume=sum(volume*(Length_m/1000))/(5*1),
-                        vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*1),
-                        vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*1)
-                        )
+fre.art.seasonal.perf.14 <- tti_summary(dat.temp, c("month", "Freeway"), 5, 1)
 
 
 dat.temp <- subset(dat.14, subset = weekday.bin == 1 & hour == 17)
 dat.temp$Freeway[dat.temp$Freeway==2] <- 0
-fre.art.seasonal.perf.14.5pm<-ddply(dat.temp,
-                                    . (month, Freeway),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*1), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*1), #1 adjusts for number of day-types per week
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*1), # 12 adjusts for number of months per year
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*1),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*1),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*1),
-vkt.volume=sum(volume*(Length_m/1000))/(5*1),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*1),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*1)
-)
-setwd("Y:/modeling/out/city_trends/report_card/") #sets the working directory.
-write.table(fre.art.seasonal.perf.14.5pm, file = "fre.art.seasonal.perf.14.5pm.txt")
+fre.art.seasonal.perf.14.5pm <- tti_summary(dat.temp, c("month", "Freeway"), 5, 1)
 
 
-
-dat.temp<-subset(dat.14, subset = weekday.bin ==1)
-dat.temp$Freeway[dat.temp$Freeway==2]<-0
-fre.art.seasonal.hourly.perf.14<-ddply(dat.temp, . (month, Freeway, hour
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*1), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*1), #1 adjusts for number of day-types per week
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*1), # 12 adjusts for number of months per year
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*1),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*1),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*1),
-vkt.volume=sum(volume*(Length_m/1000))/(5*1),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*1),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*1)
-)
-setwd("Y:/modeling/out/city_trends/report_card/") #sets the working directory.
-write.table(fre.art.seasonal.hourly.perf.14, file = "fre.art.seasonal.hourly.perf.14.txt")
+dat.temp<-subset(dat.14, subset = weekday.bin == 1)
+dat.temp$Freeway[dat.temp$Freeway==2] <- 0
+fre.art.seasonal.hourly.perf.14 <- tti_summary(dat.temp, c("month", "Freeway", "hour"), 5, 1)
 
 
+##############################
+# DOWNTOWN TRENDS
+##############################
 
-
-
-
-
-
-
-
-
-
-
-#DOWNTOWN TRENDS
-
-#ALL THE 1'S ARE DOWNTOWN.  ALL ELSE (EVEN IF >0) IS NOT.
-
+# ALL THE 1S ARE DOWNTOWN.  ALL ELSE (EVEN IF > 0) ARE NOT.
 
 dat.temp<-subset(dat.11, subset = weekday.bin == 1& (month>8&month<12) & Downtown_P == 1 & Freeway !=1)
-dat.temp$Freeway[dat.temp$Freeway==2]<-0
-downtown.hourly.perf.11.sep.nov<-ddply(dat.temp, . (hour
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*3), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*3),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*3),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*3),
-vkt.volume=sum(volume*(Length_m/1000))/(5*3),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*3),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*3)
-)
-setwd("Y:/modeling/out/city_trends/report_card/") #sets the working directory.
-write.table(downtown.hourly.perf.11.sep.nov, file = "downtown.hourly.perf.11.sep.nov.txt")
-
+dat.temp$Freeway[dat.temp$Freeway==2] <- 0
+downtown.hourly.perf.11.sep.nov <- tti_summary(dat.temp, c("hour"), 5, 3)
 
 
 dat.temp<-subset(dat.13, subset = weekday.bin == 1& (month>8&month<12) & Downtown_P == 1 & Freeway !=1)
 dat.temp$Freeway[dat.temp$Freeway==2]<-0
-downtown.hourly.perf.13.sep.nov<-ddply(dat.temp, . (hour
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*3), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*3),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*3),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*3),
-vkt.volume=sum(volume*(Length_m/1000))/(5*3),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*3),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*3)
-)
-setwd("Y:/modeling/out/city_trends/report_card/") #sets the working directory.
-write.table(downtown.hourly.perf.13.sep.nov, file = "downtown.hourly.perf.13.sep.nov.txt")
-
+downtown.hourly.perf.13.sep.nov <- tti_summary(dat.temp, c("hour"), 5, 3)
 
 
 dat.temp<-subset(dat.14, subset = weekday.bin == 1& (month>8&month<12) & Downtown_P == 1 & Freeway !=1)
-dat.temp$Freeway[dat.temp$Freeway==2]<-0
-downtown.hourly.perf.14.sep.nov<-ddply(dat.temp, . (hour
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*3), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*3),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*3),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*3),
-vkt.volume=sum(volume*(Length_m/1000))/(5*3),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*3),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*3)
-)
-setwd("Y:/modeling/out/city_trends/report_card/") #sets the working directory.
-write.table(downtown.hourly.perf.14.sep.nov, file = "downtown.hourly.perf.14.sep.nov.txt")
-
+dat.temp$Freeway[dat.temp$Freeway==2] <- 0
+downtown.hourly.perf.14.sep.nov <- tti_summary(dat.temp, c("hour"), 5, 3)
 
 
 dat.temp<-subset(dat.14, subset = Downtown_P == 1 & Freeway !=1)
 dat.temp$Freeway[dat.temp$Freeway==2]<-0
-downtown.weekday.perf.14<-ddply(dat.temp, . (weekday
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*3), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*1*12),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*1*12),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*1*12),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*1*12),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*1*12),
-vkt.volume=sum(volume*(Length_m/1000))/(1*12),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(1*12),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(1*12)
-)
-setwd("Y:/modeling/out/city_trends/report_card/") #sets the working directory.
-write.table(downtown.weekday.perf.14, file = "downtown.weekday.perf.14.txt")
+downtown.weekday.perf.14 <- tti_summary(dat.temp, c("weekday"), 1, 12)
 
 
 dat.temp<-subset(dat.14, subset = Downtown_P == 1 & Freeway !=1 & hour ==17)
 dat.temp$Freeway[dat.temp$Freeway==2]<-0
-downtown.weekday.perf.14.5pm<-ddply(dat.temp, . (weekday
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*3), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*1*12),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*1*12),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*1*12),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*1*12),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*1*12),
-vkt.volume=sum(volume*(Length_m/1000))/(1*12),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(1*12),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(1*12)
-)
-setwd("Y:/modeling/out/city_trends/report_card/") #sets the working directory.
-write.table(downtown.weekday.perf.14.5pm, file = "downtown.weekday.perf.14.5pm.txt")
+downtown.weekday.perf.14.5pm <- tti_summary(dat.temp, c("weekday"), 1, 12)
+
 
 dat.temp<-subset(dat.14, subset = Downtown_P == 1 & Freeway !=1)
 dat.temp$Freeway[dat.temp$Freeway==2]<-0
-downtown.hourly.weekday.bin.perf.14<-ddply(dat.temp, . (weekday.bin, hour
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*3), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*1*12),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*7*12),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*1*12),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*1*12),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*1*12),
-vkt.volume=sum(volume*(Length_m/1000))/(1*12),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(1*12),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(1*12)
-)
-setwd("Y:/modeling/out/city_trends/report_card/") #sets the working directory.
-write.table(downtown.hourly.weekday.bin.perf.14, file = "downtown.hourly.weekday.bin.perf.14.txt")
-
+downtown.hourly.weekday.bin.perf.14 <- tti_summary(dat.temp, c("weekday.bin","hour"), 1, 12)
 
 
 dat.temp<-subset(dat.14, subset = Downtown_P == 1 & Freeway !=1 & weekday.bin == 1)
 dat.temp$Freeway[dat.temp$Freeway==2]<-0
-downtown.corridor.hourly.perf.14<-ddply(dat.temp, . (CorridorUID, hour
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*12), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*12),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*12),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*12),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*12),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*12),
-vkt.volume=sum(volume*(Length_m/1000))/(5*12),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*12),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*12)
-)
-setwd("Y:/modeling/out/city_trends/report_card/") #sets the working directory.
-write.table(downtown.corridor.hourly.perf.14, file = "downtown.corridor.hourly.perf.14.txt")
-
+downtown.corridor.hourly.perf.14 <- tti_summary(dat.temp, c("CorridorUID","hour"), 5, 12)
 
 
 dat.temp<-subset(dat.14, subset = Downtown_P == 1 & Freeway !=1 & weekday.bin == 1)
 dat.temp$Freeway[dat.temp$Freeway==2]<-0
-downtown.corridor.perf.14<-ddply(dat.temp, . (CorridorUID
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*12), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*12),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*12),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*12),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*12),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*12),
-vkt.volume=sum(volume*(Length_m/1000))/(5*12),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*12),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*12)
-)
-setwd("Y:/modeling/out/city_trends/report_card/") #sets the working directory.
-write.table(downtown.corridor.perf.14, file = "downtown.corridor.perf.14.txt")
+downtown.corridor.perf.14 <- tti_summary(dat.temp, c("CorridorUID"), 5, 12)
 
 
+##############################
+# YEAR OVER YEAR MODELLING
+############################## 
 
+dat.temp <- subset(dat.14, subset = (Downtown_P == 1) & (Freeway != 1) & (weekday.bin == 1))
+lmer.14.downtown.seasonal <- lmer( speed.wtd ~ 1
+                                   + (1|tmc:hour:weekday)
+                                   + (1|month),
+                                   data = dat.temp, 
+                                   weights = weight.adj)
 
-#MULTILEVEL MODEL TO LOOK AT YEAR-OVER-YEAR DIFFERENCES.  
-
-dat.temp<-subset(dat.14, subset = Downtown_P==1& Freeway !=1 & weekday.bin ==1)
-lmer.14.downtown.seasonal<-lmer(speed.wtd~1+(1|tmc:hour:weekday)+ (1|month), 
-               data = dat.temp, weights = weight.adj)
-
-summary(lmer.14.downtown.seasonal)
+tidy(lmer.14.downtown.seasonal)
 fixef(lmer.14.downtown.seasonal)
-ranef(lmer.14.downtown.seasonal)$month
-ranef(lmer.14.downtown.seasonal)$weekday
-ranef(lmer.14.downtown.seasonal)$tmc
 ranef(lmer.14.downtown.seasonal)
-setwd("Y:/modeling/out/city_trends/report_card/")
-summary.lmer.14.downtown.seasonal<-tidy(lmer.14.downtown.seasonal)
-write.table(summary.lmer.14.downtown.seasonal, file = "summary.lmer.14.downtown.seasonal.txt")
-write(fixef(lmer.14.downtown.seasonal), file = "fixef.lmer.14.downtown.seasonal.txt")
-ranef.lmer.14.downtown.seasonal<-ranef(lmer.14.downtown.seasonal)$day.continuous
-write.table(ranef.lmer.14.downtown.seasonal, file = "ranef.lmer.14.downtown.seasonal.txt")
-rm(ranef.lmer.14.downtown.seasonal, summary.lmer.14.downtown.seasonal)
-#rm(lmer.14.downtown.seasonal)
 
 
-dat.temp<-subset(dat.14, subset = Downtown_P==1& Freeway !=1 & weekday.bin ==1)
-lmer.14.downtown.seasonal.hourly<-lmer(speed.wtd~1+(1|tmc:hour:weekday)+ (1|month:hour), 
-                                data = dat.temp, weights = weight.adj)
+dat.temp<-subset(dat.14, subset = (Downtown_P == 1) & (Freeway !=1) & (weekday.bin == 1))
+lmer.14.downtown.seasonal.hourly <- lmer( speed.wtd ~ 1
+                                          + (1|tmc:hour:weekday)
+                                          + (1|month:hour),
+                                          data = dat.temp, 
+                                          weights = weight.adj)
 
-summary(lmer.14.downtown.seasonal.hourly)
+tidy(lmer.14.downtown.seasonal.hourly)
 fixef(lmer.14.downtown.seasonal.hourly)
-ranef(lmer.14.downtown.seasonal.hourly)$month
-ranef(lmer.14.downtown.seasonal.hourly)$weekday
-ranef(lmer.14.downtown.seasonal.hourly)$tmc
 ranef(lmer.14.downtown.seasonal.hourly)
-setwd("Y:/modeling/out/city_trends/report_card/")
-summary.lmer.14.downtown.seasonal.hourly<-tidy(lmer.14.downtown.seasonal.hourly)
-write.table(summary.lmer.14.downtown.seasonal.hourly, file = "summary.lmer.14.downtown.seasonal.hourly.txt")
-write(fixef(lmer.14.downtown.seasonal.hourly), file = "fixef.lmer.14.downtown.seasonal.hourly.txt")
-ranef.lmer.14.downtown.seasonal.hourly<-ranef(lmer.14.downtown.seasonal.hourly)$day.continuous
-write.table(ranef.lmer.14.downtown.seasonal.hourly, file = "ranef.lmer.14.downtown.seasonal.hourly.txt")
-rm(ranef.lmer.14.downtown.seasonal.hourly, summary.lmer.14.downtown.seasonal.hourly)
-#rm(lmer.14.downtown.seasonal.hourly)
 
 
+dat.temp<-subset(dat.14, subset = (Downtown_P == 1) & (Freeway != 1))
+lmer.14.downtown.weekday <- lmer( speed.wtd ~ 1
+                                  + (1|tmc:month:hour)
+                                  + (1|weekday),
+                                  data = dat.temp,
+                                  weights = weight.adj)
 
-
-dat.temp<-subset(dat.14, subset = Downtown_P==1& Freeway !=1 )
-lmer.14.downtown.weekday<-lmer(speed.wtd~1+(1|tmc:month:hour)+ (1|weekday), 
-                                       data = dat.temp, weights = weight.adj)
-
-summary(lmer.14.downtown.weekday)
+tidy(lmer.14.downtown.weekday)
 fixef(lmer.14.downtown.weekday)
-ranef(lmer.14.downtown.weekday)$month
-ranef(lmer.14.downtown.weekday)$weekday
-ranef(lmer.14.downtown.weekday)$tmc
 ranef(lmer.14.downtown.weekday)
-setwd("Y:/modeling/out/city_trends/report_card/")
-summary.lmer.14.downtown.weekday<-tidy(lmer.14.downtown.weekday)
-write.table(summary.lmer.14.downtown.weekday, file = "summary.lmer.14.downtown.weekday.txt")
-write(fixef(lmer.14.downtown.weekday), file = "fixef.lmer.14.downtown.weekday.txt")
-ranef.lmer.14.downtown.weekday<-ranef(lmer.14.downtown.weekday)$day.continuous
-write.table(ranef.lmer.14.downtown.weekday, file = "ranef.lmer.14.downtown.weekday.txt")
-rm(ranef.lmer.14.downtown.weekday, summary.lmer.14.downtown.weekday)
-#rm(lmer.14.downtown.weekday)
 
 
+dat.temp <- subset(dat.14, subset = (Downtown_P == 1) & (Freeway != 1)  & (hour == 17))
+lmer.14.downtown.weekday.5pm <- lmer( speed.wtd ~ 1
+                                      + (1|tmc:month)
+                                      + (1|weekday),
+                                      data = dat.temp, 
+                                      weights = weight.adj)
 
-
-dat.temp<-subset(dat.14, subset = Downtown_P==1& Freeway !=1  & hour ==17)
-lmer.14.downtown.weekday.5pm<-lmer(speed.wtd~1+(1|tmc:month)+ (1|weekday), 
-                               data = dat.temp, weights = weight.adj)
-
-summary(lmer.14.downtown.weekday.5pm)
+tidy(lmer.14.downtown.weekday.5pm)
 fixef(lmer.14.downtown.weekday.5pm)
-ranef(lmer.14.downtown.weekday.5pm)$month
-ranef(lmer.14.downtown.weekday.5pm)$weekday
-ranef(lmer.14.downtown.weekday.5pm)$tmc
 ranef(lmer.14.downtown.weekday.5pm)
-setwd("Y:/modeling/out/city_trends/report_card/")
-summary.lmer.14.downtown.weekday.5pm<-tidy(lmer.14.downtown.weekday.5pm)
-write.table(summary.lmer.14.downtown.weekday.5pm, file = "summary.lmer.14.downtown.weekday.5pm.txt")
-write(fixef(lmer.14.downtown.weekday.5pm), file = "fixef.lmer.14.downtown.weekday.5pm.txt")
-ranef.lmer.14.downtown.weekday.5pm<-ranef(lmer.14.downtown.weekday.5pm)$day.continuous
-write.table(ranef.lmer.14.downtown.weekday.5pm, file = "ranef.lmer.14.downtown.weekday.5pm.txt")
-rm(ranef.lmer.14.downtown.weekday.5pm, summary.lmer.14.downtown.weekday.5pm)
-#rm(lmer.14.downtown.weekday.5pm)
 
 
-
-
-
-
-lmer.downtown.all<-lmer(speed.wtd~1+(1|tmc:hour)+ (1|month)+(1|year:hour), 
-               data = dat.all, weights = weight.adj.all, subset = Freeway !=1 & Downtown_P==1
-               & weekday.bin ==1 & (month>8 & month<12))
-summary(lmer.downtown.all)
+lmer.downtown.all <- lmer( speed.wtd ~ 1
+                           + (1|tmc:hour)
+                           + (1|month)
+                           + (1|year:hour),
+                           data = dat.all,
+                           weights = weight.adj.all,
+                           subset = ((Freeway != 1) & (Downtown_P == 1) 
+                                     & (weekday.bin == 1) & (month>8 & month<12)))
+tidy(lmer.downtown.all)
 fixef(lmer.downtown.all)
-ranef(lmer.downtown.all)$month
-ranef(lmer.downtown.all)$year
-ranef(lmer.downtown.all)$tmc
 ranef(lmer.downtown.all)
-setwd("Y:/modeling/out/city_trends/report_card/")
-summary.lmer.downtown.all<-tidy(lmer.downtown.all)
-write.table(summary.lmer.downtown.all, file = "summary.lmer.downtown.all.txt")
-write(fixef(lmer.downtown.all), file = "fixef.lmer.downtown.all.txt")
-ranef.lmer.downtown.all<-ranef(lmer.downtown.all)$day.continuous
-write.table(ranef.lmer.downtown.all, file = "ranef.lmer.downtown.all.txt")
-rm(ranef.lmer.downtown.all, summary.lmer.downtown.all)
-#rm(lmer.downtown.all)
 
 
-
-
-lmer.corridor.downtown.all<-lmer(speed.wtd~1+(1|tmc:hour)+ (1|month)+(1|CorridorUID:year:hour), 
-                        data = dat.all, weights = weight.adj.all, subset = Freeway !=1 & Downtown_P==1
-                        & CorridorUID>0 & weekday.bin ==1 & (month>8 & month<12))
-summary(lmer.corridor.downtown.all)
+lmer.corridor.downtown.all <- lmer( speed.wtd ~ 1 
+                                    + (1|tmc:hour)
+                                    + (1|month)
+                                    + (1|CorridorUID:year:hour),
+                                    data = dat.all,
+                                    weights = weight.adj.all,
+                                    subset = ((Freeway != 1) & (Downtown_P == 1)
+                                             & (CorridorUID > 0) & (weekday.bin == 1) & (month>8 & month<12)))
+tidy(lmer.corridor.downtown.all)
 fixef(lmer.corridor.downtown.all)
-ranef(lmer.corridor.downtown.all)$month
-ranef(lmer.corridor.downtown.all)$year
-ranef(lmer.corridor.downtown.all)$tmc
 ranef(lmer.corridor.downtown.all)
-setwd("Y:/modeling/out/city_trends/report_card/")
-summary.lmer.corridor.downtown.all<-tidy(lmer.corridor.downtown.all)
-write.table(summary.lmer.corridor.downtown.all, file = "summary.lmer.corridor.downtown.all.txt")
-write(fixef(lmer.corridor.downtown.all), file = "fixef.lmer.corridor.downtown.all.txt")
-ranef.lmer.corridor.downtown.all<-ranef(lmer.corridor.downtown.all)$day.continuous
-write.table(ranef.lmer.corridor.downtown.all, file = "ranef.lmer.corridor.downtown.all.txt")
-rm(ranef.lmer.corridor.downtown.all, summary.lmer.corridor.downtown.all)
-#rm(lmer.downtown.all)
 
 
 lmer.downtown.all.weekday.hourly<-lmer(speed.wtd~1+(1|tmc:hour:weekday.bin)+ (1|month)+(1|year:hour:weekday.bin), 
@@ -1503,48 +977,28 @@ rm(ranef.lmer.downtown.all.weekday.hourly, summary.lmer.downtown.all.weekday.hou
 
 
 
-lmer.fre.year.hourly<-lmer(speed.wtd~1+(1|tmc:hour)+ (1|month)+(1|year:hour), 
-                           data = dat.all, weights = weight.adj.all, subset = (Freeway ==1 & weekday.bin ==1))
-summary(lmer.fre.year.hourly)
+lmer.fre.year.hourly <- lmer( speed.wtd ~ 1
+                              + (1|tmc:hour)
+                              + (1|month)
+                              + (1|year:hour),
+                              data = dat.all, 
+                              weights = weight.adj.all, 
+                              subset = ((Freeway == 1) & (weekday.bin == 1)))
+tidy(lmer.fre.year.hourly)
 fixef(lmer.fre.year.hourly)
-ranef(lmer.fre.year.hourly)$month
-ranef(lmer.fre.year.hourly)$weekday
-ranef(lmer.fre.year.hourly)$tmc
 ranef(lmer.fre.year.hourly)
-setwd("Y:/modeling/out/city_trends/")
-summary.lmer.fre.year.hourly<-tidy(lmer.fre.year.hourly)
-write.table(summary.lmer.fre.year.hourly, file = "summary.lmer.fre.year.hourly.txt")
-write(fixef(lmer.fre.year.hourly), file = "fixef.lmer.fre.year.hourly.txt")
-ranef.lmer.fre.year.hourly<-ranef(lmer.fre.year.hourly)$day.continuous
-write.table(ranef.lmer.fre.year.hourly, file = "ranef.lmer.fre.year.hourly.txt")
-rm(ranef.lmer.fre.year.hourly, summary.lmer.fre.year.hourly)
-#rm(lmer.fre.year.hourly)
 
 
-
-
-
-
-
-
-lmer.downtown.all1<-lmer(speed.wtd~1+(1|tmc:hour:year)+ (1|month), 
-                         data = dat.all, weights = weight.adj.all, subset = Freeway !=1 & Downtown_P==1
-                         & weekday.bin ==1 & (month>8 & month<12))
-summary(lmer.downtown.all1)
+lmer.downtown.all1 <- lmer( speed.wtd ~ 1
+                            + (1|tmc:hour:year)
+                            + (1|month),
+                            data = dat.all,
+                            weights = weight.adj.all, 
+                            subset = ((Freeway != 1) & (Downtown_P == 1)
+                                     & (weekday.bin == 1) & (month>8 & month<12)))
+tidy(lmer.downtown.all1)
 fixef(lmer.downtown.all1)
-ranef(lmer.downtown.all1)$month
-ranef(lmer.downtown.all1)$year
-ranef(lmer.downtown.all1)$tmc
 ranef(lmer.downtown.all1)
-setwd("Y:/modeling/out/city_trends/report_card/")
-
-summary.lmer.downtown.all1<-tidy(lmer.downtown.all1)
-write.table(summary.lmer.downtown.all1, file = "summary.lmer.downtown.all1.txt")
-write(fixef(lmer.downtown.all1), file = "fixef.lmer.downtown.all1.txt")
-ranef.lmer.downtown.all1<-ranef(lmer.downtown.all1)$day.continuous
-write.table(ranef.lmer.downtown.all1, file = "ranef.lmer.downtown.all1.txt")
-rm(ranef.lmer.downtown.all1, summary.lmer.downtown.all1)
-#rm(lmer.downtown.all1)
 
 
 #EXTRACTING THE RESULTS FOR FURTHER PROCESSING:
@@ -2057,318 +1511,58 @@ dat.11.0812$L_UID[dat.11.0812$L_UID == 78.2 | dat.11.0812$L_UID == 28.2]<-28.2
 
 dat.temp<-subset(dat.14.0812, subset = weekday.bin ==1)
 dat.temp$Freeway[dat.temp$Freeway==2]<-0
-corridor.hourly.perf.14.0812<-ddply(dat.temp, . (LengthUID, hour
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*12), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*12),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*12),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*12),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*12),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*12),
-vkt.volume=sum(volume*(Length_m/1000))/(5*12),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*12),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*12)
-)
-setwd("Y:/modeling/out/corridors/") #sets the working directory.
-write.table(corridor.hourly.perf.14.0812, file = "corridor.hourly.perf.14.0812.txt")
+corridor.hourly.perf.14.0812 <- tti_summary(dat.temp, c("LengthUID", "hour"), 5, 12)
 
 
-dat.temp<-subset(dat.14.0812, subset = weekday.bin ==1 & (month>8&month<12))
+dat.temp<-subset(dat.14.0812, subset = weekday.bin == 1 & (month>8&month<12))
 dat.temp$Freeway[dat.temp$Freeway==2]<-0
-corridor.hourly.perf.14.sep.nov.0812<-ddply(dat.temp, . (LengthUID, hour
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*3), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*3),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*3),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*3),
-vkt.volume=sum(volume*(Length_m/1000))/(5*3),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*3),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*3)
-)
-setwd("Y:/modeling/out/corridors/") #sets the working directory.
-write.table(corridor.hourly.perf.14.sep.nov.0812, file = "corridor.hourly.perf.14.sep.nov.0812.txt")
+corridor.hourly.perf.14.sep.nov.0812 <- tti_summary(dat.temp, c("LengthUID", "hour"), 5, 3)
 
-
-
-
-
-
-
-
-
-
-
-
+                                                    
 dat.temp<-subset(dat.13.0812, subset = weekday.bin ==1 & (month>8&month<12))
 dat.temp$Freeway[dat.temp$Freeway==2]<-0
-corridor.hourly.perf.13.sep.nov.0812<-ddply(dat.temp, . (LengthUID, hour
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*3), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*3),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*3),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*3),
-vkt.volume=sum(volume*(Length_m/1000))/(5*3),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*3),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*3)
-)
-setwd("Y:/modeling/out/corridors/") #sets the working directory.
-write.table(corridor.hourly.perf.13.sep.nov.0812, file = "corridor.hourly.perf.13.sep.nov.0812.txt")
-
-
+corridor.hourly.perf.13.sep.nov.0812 <- tti_summary(dat.temp, c("LengthUID", "hour"), 5, 3)
 
 
 dat.temp<-subset(dat.11.0812, subset = weekday.bin ==1 & (month>8&month<12))
 dat.temp$Freeway[dat.temp$Freeway==2]<-0
-corridor.hourly.perf.11.sep.nov.0812<-ddply(dat.temp, . (LengthUID, hour
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*3), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*3),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*3),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*3),
-vkt.volume=sum(volume*(Length_m/1000))/(5*3),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*3),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*3)
-)
-setwd("Y:/modeling/out/corridors/") #sets the working directory.
-write.table(corridor.hourly.perf.11.sep.nov.0812, file = "corridor.hourly.perf.11.sep.nov.0812.txt")
-
-
-
-
+corridor.hourly.perf.11.sep.nov.0812 <- tti_summary(dat.temp, c("LengthUID", "hour"), 5, 3)
 
 
 dat.temp<-subset(dat.14.0812, subset = weekday.bin ==1)
 dat.temp$Freeway[dat.temp$Freeway==2]<-0
-corridor.directional.seasonal.perf.14.0812<-ddply(dat.temp, . (L_UID, month
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*1), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*1),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*1),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*1),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*1),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*1),
-vkt.volume=sum(volume*(Length_m/1000))/(5*1),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*1),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*1)
-)
-setwd("Y:/modeling/out/corridors/") #sets the working directory.
-write.table(corridor.directional.seasonal.perf.14.0812, file = "corridor.directional.seasonal.perf.14.0812.txt")
-
+corridor.directional.seasonal.perf.14.0812 <- tti_summary(dat.temp, c("L_UID", "month"), 5, 1)
 
 
 dat.temp<-subset(dat.14.0812, subset = weekday.bin ==1 & (month>8&month<12))
 dat.temp$Freeway[dat.temp$Freeway==2]<-0
-corridor.directional.hourly.perf.14.sep.nov.0812<-ddply(dat.temp, . (L_UID, hour
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*3), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*3),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*3),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*3),
-vkt.volume=sum(volume*(Length_m/1000))/(5*3),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*3),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*3)
-)
-setwd("Y:/modeling/out/corridors/") #sets the working directory.
-write.table(corridor.directional.hourly.perf.14.sep.nov.0812, file = "corridor.directional.hourly.perf.14.sep.nov.0812.txt")
-
-
+corridor.directional.hourly.perf.14.sep.nov.0812 <- tti_summary(dat.temp, c("L_UID", "hour"), 5, 3)
 
 
 dat.temp<-subset(dat.13.0812, subset = weekday.bin ==1 & (month>8&month<12))
 dat.temp$Freeway[dat.temp$Freeway==2]<-0
-corridor.directional.hourly.perf.13.sep.nov.0812<-ddply(dat.temp, . (L_UID, hour
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*3), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*3),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*3),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*3),
-vkt.volume=sum(volume*(Length_m/1000))/(5*3),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*3),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*3)
-)
-setwd("Y:/modeling/out/corridors/") #sets the working directory.
-write.table(corridor.directional.hourly.perf.13.sep.nov.0812, file = "corridor.directional.hourly.perf.13.sep.nov.0812.txt")
-
-
+corridor.directional.hourly.perf.13.sep.nov.0812 <- tti_summary(dat.temp, c("L_UID", "hour"), 5, 3)
 
 
 dat.temp<-subset(dat.11.0812, subset = weekday.bin ==1 & (month>8&month<12))
 dat.temp$Freeway[dat.temp$Freeway==2]<-0
-corridor.directional.hourly.perf.11.sep.nov.0812<-ddply(dat.temp, . (L_UID, hour
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*3), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*3),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*3),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*3),
-vkt.volume=sum(volume*(Length_m/1000))/(5*3),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*3),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*3)
-)
-setwd("Y:/modeling/out/corridors/") #sets the working directory.
-write.table(corridor.directional.hourly.perf.11.sep.nov.0812, file = "corridor.directional.hourly.perf.11.sep.nov.0812.txt")
+corridor.directional.hourly.perf.11.sep.nov.0812 <- tti_summary(dat.temp, c("L_UID", "hour"), 5, 3)
 
 
 dat.temp<-subset(dat.14.0812, subset = weekday.bin ==1 )
 dat.temp$CorridorUID[dat.temp$CorridorUID==29]<-84
-corridor.directional.hourly.perf.14.0812<-ddply(dat.temp, . (hour, L_UID
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*12), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*12),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*12),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*12),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*12),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*12),
-vkt.volume=sum(volume*(Length_m/1000))/(5*12),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*12),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*12)
-)
-
-corridor.directional.hourly.perf.14.0812
-
-setwd("Y:/modeling/out/corridors/") #sets the working directory.
-write.table(corridor.directional.hourly.perf.14.0812, file = "corridor.directional.hourly.perf.14.0812.txt")
-
-
+corridor.directional.hourly.perf.14.0812 <- tti_summary(dat.temp, c("hour","L_UID"), 5, 12)
 
 
 dat.temp<-subset(dat.14.0812, subset = weekday.bin !="NA" )
 dat.temp$CorridorUID[dat.temp$CorridorUID==29]<-84
-corridor.directional.weekday.perf.14.0812<-ddply(dat.temp, . (hour, weekday, L_UID
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*1*12), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*1*12),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*1*12),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*1*12),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*1*12),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*1*12),
-vkt.volume=sum(volume*(Length_m/1000))/(1*12),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(1*12),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(1*12)
-)
-
-corridor.directional.weekday.perf.14.0812
-
-setwd("Y:/modeling/out/corridors/") #sets the working directory.
-write.table(corridor.directional.weekday.perf.14.0812, file = "corridor.directional.weekday.perf.14.0812.txt")
+corridor.directional.weekday.perf.14.0812 <- tti_summary(dat.temp, c("hour","weekday","L_UID"), 1, 12)
 
 
 
-
-
-
-#FOLLOWING IS CODE TO DOUBLE-CHECK WHAT'S GOING ON WITH THE GARDINER.
+##############################
+# GARDINER EXPRESSWAY MODELS
+############################## 
 
 
 dat.gardiner.wb<-subset(dat.all, subset = C_UID == 29.2 | C_UID == 84.2)
