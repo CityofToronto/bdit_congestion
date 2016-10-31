@@ -9,6 +9,7 @@ library(lme4)
 
 analysis_year = 2014
 mi_to_m = 1609.34
+
 ##############################################
 # IMPORT RAW DATA FROM POSTGRESQL
 ##############################################
@@ -18,8 +19,36 @@ source("connect/connect.R")
 
 fileLoc = "K:/tra/GM Office/Big Data Group/Work/Congestion Reporting - McMaster Update/R Code Testing - Aakash"
 
-impute<-function(a, a.imute){
+##############################################
+# FUNCTION DEFINITIONS
+##############################################
+
+impute <- function(a, a.impute) {
   ifelse(is.na(a),a.impute,a)
+}
+
+tti_summary <- function(x, groups, days, hours) {
+  result <- ddply (x,groups,here(summarise),
+                   tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
+                   tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
+                   tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
+                   tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
+                   tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
+                   tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
+                   speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
+                   speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
+                   speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
+                   delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(mi_to_m*days*hours),
+                   delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(mi_to_m*days*hours),
+                   delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(mi_to_m*days*hours),
+                   delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(mi_to_m*days*hours),
+                   delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(mi_to_m*days*hours),
+                   delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(mi_to_m*days*hours),
+                   vkt.volume=sum(volume*(Length_m/1000))/(days*hours),
+                   vkt.count.adj=sum(count.adj*(Length_m/1000))/(days*hours),
+                   vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(days*hours)
+  )
+  return(result)
 }
 
 ##############################################
@@ -166,7 +195,6 @@ save.image("CITY_TRENDS.RData")
 ##############################################
 
 load(paste(curr_dir, "vol_adj.rda",sep=""))
-
 
 ##############################################
 # VOLUME ADJUSTMENTS
@@ -383,9 +411,6 @@ dat.11$count.adj.all[dat.11$CorridorUID %in% oth_corridors] <-
     predict(lm.c, dat.11[dat.11$CorridorUID %in% oth_corridors,])
 rm(dat.11a)
 
-save.image("CITY_TRENDS.RData")
-
-
 
 ##############################################
 # VOLUME WEIGHT ADJUSTMENTS
@@ -545,8 +570,6 @@ save.image("CITY_TRENDS.RData")
 
 
 
-
-
 #EXTRACTING THE RESULTS FOR FURTHER PROCESSING:
 summary.lmer.14b<-tidy(as.data.frame(ranef(lmer.14b)))
 n.12<-(dim(summary.lmer.14b)[1]-12)
@@ -649,100 +672,62 @@ rm(vkt.count.adj, vkt.count.adj.speed, vkt.count.adj.speed1,
    vkt.count.adj.speed2, vkt.count.adj.speed85,
    vkt.count.adj.night.speed)
 rm(n, n.11, n.12, year)
+
+
 #INTEGRATING MTO ADJUSTMENTS FOR 2011.  NEEDS TO BE DONE FOR OTHER YEARS AS WELL#####
 
 
-CorridorUID1<-summary.lmer.14b$CorridorUID
-CorridorUID1[CorridorUID1!=81 &CorridorUID1!=82&CorridorUID1!=80&CorridorUID1!=88
-             &CorridorUID1!=85&CorridorUID1!=83]<-88
+summary.lmer.14b$CorridorUID1 <- summary.lmer.14b$CorridorUID
+summary.lmer.14b$CorridorUID1[summary$lmer.14b$CorridorUID1 %in% mto_corridors]<-88
 summary.lmer.14b<-data.frame(cbind(summary.lmer.14b, CorridorUID1))
-rm(CorridorUID1)
-count.adj1<-predict(lm.b, summary.lmer.14b)
-count.adj1[count.adj1<1]<-0
-count.adj2<-predict(lm.c, summary.lmer.14b)
 
-bin.1<-rep(0, length = length(count.adj1))
-bin.1[summary.lmer.14b$CorridorUID==80 | summary.lmer.14b$CorridorUID==81 | summary.lmer.14b$CorridorUID==82 | 
-        summary.lmer.14b$CorridorUID==83 | summary.lmer.14b$CorridorUID==85 | summary.lmer.14b$CorridorUID==88]<-1
-bin.2<-rep(0, length = length(count.adj1))
-bin.2[summary.lmer.14b$CorridorUID==87 | summary.lmer.14b$CorridorUID==89 ]<-1
-bin.3<-rep(0, length= length(count.adj1))
-bin.3[bin.1==0&bin.2==0]<-1
-count.adj.all<-summary.lmer.14b$count.adj*bin.3+count.adj1*bin.1+count.adj2*bin.2
-summary.lmer.14b<-data.frame(cbind(summary.lmer.14b, count.adj.all))
-names(summary.lmer.14b)
-rm(summary.lmer.14ba)
-rm(bin.1, bin.2, bin.3, count.adj.all, count.adj1, count.adj2)
+summary.lmer.14b$count.adj.all <- 
+  summary.lmer.14b$count.adj
+summary.lmer.14b$count.adj.all[summary.lmer.14b$CorridorUID %in% mto_corridors] <- 
+  predict(lm.b, summary.lmer.14b[summary.lmer.14b$CorridorUID %in% mto_corridors,])
+summary.lmer.14b$count.adj.all[summary.lmer.14b$CorridorUID %in% mto_corridors & summary.lmer.14b$count.adj.all < 1] <- 
+  0
+summary.lmer.14b$count.adj.all[summary.lmer.14b$CorridorUID %in% oth_corridors] <- 
+  predict(lm.c, summary.lmer.14b[summary.lmer.14b$CorridorUID %in% oth_corridors,])
 
 
-
-
-
-setwd("Y:/modeling/out/city_trends/") #sets the working directory.
-write.table(summary.lmer.14b, file = "summary.lmer.14b.proc.txt")
 
 dat.temp<-subset(summary.lmer.14b, subset = (weekday.bin == 1& Freeway ==1))
-out.lmer.14b.daily<-ddply(dat.temp, . (hour),
-                                     summarise,
-                                     vkt.k=sum(vkt.count.adj),
-                                     delay.85.hrs=sum(vkt.count.adj.speed1-vkt.count.adj.speed85),
-                                     delay.night.hrs=sum(vkt.count.adj.speed2-vkt.count.adj.night.speed),
-                                     tti.85=(sum(vkt.count.adj.speed1)/sum(vkt.count.adj.speed85)),
-                                     tti.night=(sum(vkt.count.adj.speed2)/sum(vkt.count.adj.night.speed)),
-                                     speed=sum(speed*vkt.count.adj)/sum(vkt.count.adj)
-                                     )
-out.lmer.14b.daily
-attach(out.lmer.14b.daily)
-names(out.lmer.14b.daily)
-plot(hour,speed)
-plot(hour,tti.night)
-plot(hour,vkt.k)
-plot(hour,delay.night.hrs)
-
-detach(out.lmer.14b.daily)
+out.lmer.14b.daily<-ddply ( dat.temp, 
+                            . (hour),
+                            summarise,
+                           vkt.k=sum(vkt.count.adj),
+                           delay.85.hrs=sum(vkt.count.adj.speed1-vkt.count.adj.speed85),
+                           delay.night.hrs=sum(vkt.count.adj.speed2-vkt.count.adj.night.speed),
+                           tti.85=(sum(vkt.count.adj.speed1)/sum(vkt.count.adj.speed85)),
+                           tti.night=(sum(vkt.count.adj.speed2)/sum(vkt.count.adj.night.speed)),
+                           speed=sum(speed*vkt.count.adj)/sum(vkt.count.adj)
+                           )
 
 
+lmer.11e <- lmer( speed.wtd ~ 1
+                  + (1|tmc:hour:weekday)
+                  + (1|month),
+                  data = dat.11,
+                  weights = weight.adj)
 
+lmer.13e <- lmer( speed.wtd ~ 1
+                  + (1|tmc:hour:weekday)
+                  + (1|month), 
+                  data = dat.13,
+                  weights = weight.adj)
 
-
-
-
-lmer.11e<-lmer(speed.wtd~1+(1|tmc:hour:weekday)+ (1|month), 
-               data = dat.11, weights = weight.adj)
-lmer.13e<-lmer(speed.wtd~1+(1|tmc:hour:weekday)+ (1|month), 
-               data = dat.13, weights = weight.adj)
-lmer.14e<-lmer(speed.wtd~1+(1|tmc:hour:weekday)+ (1|month), 
-               data = dat.14, weights = weight.adj)
+lmer.14e < -lmer( speed.wtd ~ 1
+                  + (1|tmc:hour:weekday)
+                  + (1|month), 
+                  data = dat.14,
+                  weights = weight.adj)
 
 
 
-#THE FOLLOWING CODE CALCULATES THE TRAVEL TIME INDICES FOR EACH OF THE CORRIDORS
-
-tti_summary <- function(x, groups, days, hours) {
-  result <- ddply (x,groups,here(summarise),
-                   tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-                   tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-                   tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-                   tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-                   tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-                   tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-                   speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-                   speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-                   speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-                   delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(mi_to_m*days*hours),
-                   delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(mi_to_m*days*hours),
-                   delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(mi_to_m*days*hours),
-                   delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(mi_to_m*days*hours),
-                   delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(mi_to_m*days*hours),
-                   delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(mi_to_m*days*hours),
-                   vkt.volume=sum(volume*(Length_m/1000))/(days*hours),
-                   vkt.count.adj=sum(count.adj*(Length_m/1000))/(days*hours),
-                   vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(days*hours)
-                )
-  return(result)
-}
-
-
+#######################################
+# CORRIDOR TRAVEL TIME INDEX SUMMARIES
+#######################################
 
 ########
 # 2014 #
@@ -786,10 +771,10 @@ fre.art.hourly.perf.14.weekend <- tti_summary(dat.temp, c("hour", "Freeway"), 2,
 # 2013 #
 ########
 
-
 dat.temp <- subset(dat.13, subset = weekday.bin == 1 & (month>8&month<12))
 dat.temp$Freeway[dat.temp$Freeway==2] <- 0
 fre.art.hourly.perf.13.sep.nov <- tti_summary(dat.temp, c("hour", "Freeway"), 5, 3)
+
 
 ########
 # 2011 #
@@ -798,6 +783,7 @@ fre.art.hourly.perf.13.sep.nov <- tti_summary(dat.temp, c("hour", "Freeway"), 5,
 dat.temp <- subset(dat.11, subset = weekday.bin == 1& (month>8&month<12))
 dat.temp$Freeway[dat.temp$Freeway==2] <- 0
 fre.art.hourly.perf.11.sep.nov <- tti_summary(dat.temp, c("hour", "Freeway"), 5, 3)
+
 
 ########
 # 2014 #
@@ -957,24 +943,17 @@ fixef(lmer.corridor.downtown.all)
 ranef(lmer.corridor.downtown.all)
 
 
-lmer.downtown.all.weekday.hourly<-lmer(speed.wtd~1+(1|tmc:hour:weekday.bin)+ (1|month)+(1|year:hour:weekday.bin), 
-                                 data = dat.all, weights = weight.adj.all, subset = Freeway !=1 & Downtown_P==1
-                                 & CorridorUID>0 & (month>8 & month<12))
-summary(lmer.downtown.all.weekday.hourly)
+lmer.downtown.all.weekday.hourly <- lmer( speed.wtd ~ 1
+                                          + (1|tmc:hour:weekday.bin)
+                                          + (1|month)
+                                          + (1|year:hour:weekday.bin), 
+                                          data = dat.all, 
+                                          weights = weight.adj.all, 
+                                          subset = ((Freeway != 1) & (Downtown_P == 1)
+                                                    & (CorridorUID > 0) & (month > 8 & month < 12)))
+tidy(lmer.downtown.all.weekday.hourly)
 fixef(lmer.downtown.all.weekday.hourly)
-ranef(lmer.downtown.all.weekday.hourly)$month
-ranef(lmer.downtown.all.weekday.hourly)$year
-ranef(lmer.downtown.all.weekday.hourly)$tmc
 ranef(lmer.downtown.all.weekday.hourly)
-setwd("Y:/modeling/out/city_trends/report_card/")
-summary.lmer.downtown.all.weekday.hourly<-tidy(lmer.downtown.all.weekday.hourly)
-write.table(summary.lmer.downtown.all.weekday.hourly, file = "summary.lmer.downtown.all.weekday.hourly.txt")
-write(fixef(lmer.downtown.all.weekday.hourly), file = "fixef.lmer.downtown.all.weekday.hourly.txt")
-ranef.lmer.downtown.all.weekday.hourly<-ranef(lmer.downtown.all.weekday.hourly)$day.continuous
-write.table(ranef.lmer.downtown.all.weekday.hourly, file = "ranef.lmer.downtown.all.weekday.hourly.txt")
-rm(ranef.lmer.downtown.all.weekday.hourly, summary.lmer.downtown.all.weekday.hourly)
-
-
 
 
 lmer.fre.year.hourly <- lmer( speed.wtd ~ 1
@@ -1002,6 +981,7 @@ ranef(lmer.downtown.all1)
 
 
 #EXTRACTING THE RESULTS FOR FURTHER PROCESSING:
+
 summary.lmer.downtown.all1<-tidy(lmer.downtown.all1)
 n.3<-(dim(summary.lmer.downtown.all1)[1]-3)
 n<-dim(summary.lmer.downtown.all1)[1]
@@ -1088,17 +1068,13 @@ rm(vkt.count.adj, vkt.count.adj.speed, vkt.count.adj.speed1,
    vkt.count.adj.speed2, vkt.count.adj.speed85,
    vkt.count.adj.night.speed)
 rm(n, n.3)
+
 #INTEGRATING MTO ADJUSTMENTS FOR 2011.  NEEDS TO BE DONE FOR OTHER YEARS AS WELL#####
 
+summary.lmer.downtown.all1$corridorUID1 <- summary.lmer.downtown.all1$corridorUID
+summary.lmer.downtown.all1$corridorUID1[summary.lmer.downtown.all1$corridorUID %in% mto_corridors] <- 88
 
-CorridorUID1<-summary.lmer.downtown.all1$CorridorUID
-CorridorUID1[CorridorUID1!=81 &CorridorUID1!=82&CorridorUID1!=80&CorridorUID1!=88
-             &CorridorUID1!=85&CorridorUID1!=83]<-88
-summary.lmer.downtown.all1<-data.frame(cbind(summary.lmer.downtown.all1, CorridorUID1))
-rm(CorridorUID1)
-weekday<-rep(5, length  = dim(summary.lmer.downtown.all1)[1])  #SO THE SIMULATION IS FOR THURSDAY (WEEKDAY =5)
-summary.lmer.downtown.all1<-data.frame(cbind(summary.lmer.downtown.all1, weekday))
-rm(weekday)
+summary.lmer.downtown.all1$weekday <- 5 # Thursday
 count.adj1<-predict(lm.b, summary.lmer.downtown.all1)
 count.adj1[count.adj1<1]<-0
 count.adj2<-predict(lm.c, summary.lmer.downtown.all1)
@@ -1107,407 +1083,192 @@ bin.1<-rep(0, length = length(count.adj1))
 bin.1[summary.lmer.downtown.all1$CorridorUID==80 | summary.lmer.downtown.all1$CorridorUID==81 | summary.lmer.downtown.all1$CorridorUID==82 | 
         summary.lmer.downtown.all1$CorridorUID==83 | summary.lmer.downtown.all1$CorridorUID==85 | summary.lmer.downtown.all1$CorridorUID==88]<-1
 bin.2<-rep(0, length = length(count.adj1))
-bin.2[summary.lmer.downtown.all1$CorridorUID==87 | summary.lmer.downtown.all1$CorridorUID==89 ]<-1
+bin.2[summary.lmer.downtown.all1$CorridorUID==87 | summary.lmer.downtown.all1$CorridorUID==89 ] <- 1
 bin.3<-rep(0, length= length(count.adj1))
 bin.3[bin.1==0&bin.2==0]<-1
 count.adj.all<-summary.lmer.downtown.all1$count.adj*bin.3+count.adj1*bin.1+count.adj2*bin.2
 summary.lmer.downtown.all1<-data.frame(cbind(summary.lmer.downtown.all1, count.adj.all))
-names(summary.lmer.downtown.all1)
-rm(bin.1, bin.2, bin.3, count.adj.all, count.adj1, count.adj2)
-
-setwd("Y:/modeling/out/city_trends/report_card/") #sets the working directory.
-write.table(summary.lmer.downtown.all1, file = "summary.lmer.downtown.all1.proc.txt")
 
 
 
-#CORRIDOR ANALYSES
+#######################################
+# CORRIDOR ANALYSES
+#######################################
 
-
-dat.temp<-subset(dat.14, subset = CorridorUID>0& weekday.bin ==1)
-dat.temp$Freeway[dat.temp$Freeway==2]<-0
-corridor.hourly.perf.14<-ddply(dat.temp, . (CorridorUID, hour
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*12), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*12),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*12),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*12),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*12),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*12),
-vkt.volume=sum(volume*(Length_m/1000))/(5*12),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*12),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*12)
-)
-setwd("Y:/modeling/out/corridors/") #sets the working directory.
-write.table(corridor.hourly.perf.14, file = "corridor.hourly.perf.14.txt")
+dat.temp<-subset(dat.14, subset = CorridorUID > 0 & weekday.bin == 1)
+dat.temp$Freeway[dat.temp$Freeway==2] <- 0
+corridor.hourly.perf.14 <- tti_summary(dat.temp, c("CorridorUID","hour"), 5, 12)
 
 
 dat.temp<-subset(dat.14, subset = CorridorUID>0 & weekday.bin ==1 & (month>8&month<12))
 dat.temp$Freeway[dat.temp$Freeway==2]<-0
-corridor.hourly.perf.14.sep.nov<-ddply(dat.temp, . (CorridorUID, hour
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*3), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*3),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*3),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*3),
-vkt.volume=sum(volume*(Length_m/1000))/(5*3),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*3),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*3)
-)
-setwd("Y:/modeling/out/corridors/") #sets the working directory.
-write.table(corridor.hourly.perf.14.sep.nov, file = "corridor.hourly.perf.14.sep.nov.txt")
-
-
+corridor.hourly.perf.14.sep.nov <- tti_summary(dat.temp, c("CorridorUID","hour"), 5, 3)
 
 
 dat.temp<-subset(dat.13, subset = CorridorUID>0 & weekday.bin ==1 & (month>8&month<12))
 dat.temp$Freeway[dat.temp$Freeway==2]<-0
-corridor.hourly.perf.13.sep.nov<-ddply(dat.temp, . (CorridorUID, hour
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*3), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*3),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*3),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*3),
-vkt.volume=sum(volume*(Length_m/1000))/(5*3),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*3),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*3)
-)
-setwd("Y:/modeling/out/corridors/") #sets the working directory.
-write.table(corridor.hourly.perf.13.sep.nov, file = "corridor.hourly.perf.13.sep.nov.txt")
-
-
+corridor.hourly.perf.13.sep.nov <- tti_summary(dat.temp, c("CorridorUID","hour"), 5, 3)
 
 
 dat.temp<-subset(dat.11, subset = CorridorUID>0 & weekday.bin ==1 & (month>8&month<12))
 dat.temp$Freeway[dat.temp$Freeway==2]<-0
-corridor.hourly.perf.11.sep.nov<-ddply(dat.temp, . (CorridorUID, hour
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*3), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*3),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*3),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*3),
-vkt.volume=sum(volume*(Length_m/1000))/(5*3),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*3),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*3)
-)
-setwd("Y:/modeling/out/corridors/") #sets the working directory.
-write.table(corridor.hourly.perf.11.sep.nov, file = "corridor.hourly.perf.11.sep.nov.txt")
+corridor.hourly.perf.11.sep.nov <- tti_summary(dat.temp, c("CorridorUID","hour"), 5, 3)
 
 
-
-
-
-
-dat.temp<-subset(dat.14, subset = CorridorUID>0& weekday.bin ==1)
-dat.temp$Freeway[dat.temp$Freeway==2]<-0
-corridor.directional.seasonal.perf.14<-ddply(dat.temp, . (C_UID, month
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*1), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*1),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*1),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*1),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*1),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*1),
-vkt.volume=sum(volume*(Length_m/1000))/(5*1),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*1),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*1)
-)
-setwd("Y:/modeling/out/corridors/") #sets the working directory.
-write.table(corridor.directional.seasonal.perf.14, file = "corridor.directional.seasonal.perf.14.txt")
-
+dat.temp<-subset(dat.14, subset = CorridorUID > 0 & weekday.bin == 1)
+dat.temp$Freeway[dat.temp$Freeway == 2] <- 0
+corridor.directional.seasonal.perf.14 <- tti_summary(dat.temp, c("C_UID","month"), 5, 1)
 
 
 dat.temp<-subset(dat.14, subset = CorridorUID>0 & weekday.bin ==1 & (month>8&month<12))
 dat.temp$Freeway[dat.temp$Freeway==2]<-0
-corridor.directional.hourly.perf.14.sep.nov<-ddply(dat.temp, . (C_UID, hour
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*3), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*3),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*3),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*3),
-vkt.volume=sum(volume*(Length_m/1000))/(5*3),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*3),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*3)
-)
-setwd("Y:/modeling/out/corridors/") #sets the working directory.
-write.table(corridor.directional.hourly.perf.14.sep.nov, file = "corridor.directional.hourly.perf.14.sep.nov.txt")
-
-
+corridor.directional.hourly.perf.14.sep.nov <- tti_summary(dat.temp, c("C_UID","hour"), 5, 3)
 
 
 dat.temp<-subset(dat.13, subset = CorridorUID>0 & weekday.bin ==1 & (month>8&month<12))
 dat.temp$Freeway[dat.temp$Freeway==2]<-0
-corridor.directional.hourly.perf.13.sep.nov<-ddply(dat.temp, . (C_UID, hour
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*3), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*3),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*3),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*3),
-vkt.volume=sum(volume*(Length_m/1000))/(5*3),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*3),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*3)
-)
-setwd("Y:/modeling/out/corridors/") #sets the working directory.
-write.table(corridor.directional.hourly.perf.13.sep.nov, file = "corridor.directional.hourly.perf.13.sep.nov.txt")
+corridor.directional.hourly.perf.13.sep.nov <- tti_summary(dat.temp, c("C_UID","hour"), 5, 3)
 
 
-
-
-dat.temp<-subset(dat.11, subset = CorridorUID>0 & weekday.bin ==1 & (month>8&month<12))
-dat.temp$Freeway[dat.temp$Freeway==2]<-0
-corridor.directional.hourly.perf.11.sep.nov<-ddply(dat.temp, . (C_UID, hour
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*3), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*3),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*3),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*3),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*3),
-vkt.volume=sum(volume*(Length_m/1000))/(5*3),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*3),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*3)
-)
-setwd("Y:/modeling/out/corridors/") #sets the working directory.
-write.table(corridor.directional.hourly.perf.11.sep.nov, file = "corridor.directional.hourly.perf.11.sep.nov.txt")
+dat.temp<-subset(dat.11, subset = CorridorUID > 0 & weekday.bin == 1 & (month>8&month<12))
+dat.temp$Freeway[dat.temp$Freeway==2] <- 0
+corridor.directional.hourly.perf.11.sep.nov <- tti_summary(dat.temp, c("C_UID","hour"), 5, 3)
 
 
 dat.temp<-subset(dat.14, subset = weekday.bin ==1 )
 dat.temp$CorridorUID[dat.temp$CorridorUID==29]<-84
-corridor.directional.hourly.perf.14<-ddply(dat.temp, . (hour, C_UID
-),
-summarise,
-tti.85.volume= (sum(volume*Length_m/speed.wtd1)/sum(volume*Length_m/speed85)),
-tti.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)/sum(count.adj*Length_m/speed85)),
-tti.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)/sum(count.adj.all*Length_m/speed85)),
-tti.night.volume= (sum(volume*Length_m/speed.wtd2)/sum(volume*Length_m/night.speed)),
-tti.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)/sum(count.adj*Length_m/night.speed)),
-tti.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)/sum(count.adj.all*Length_m/night.speed)) , 
-speed.volume=(sum(volume*Length_m*speed.wtd1)/sum(volume*Length_m)),
-speed.count.adj=(sum(count.adj*Length_m*speed.wtd1)/sum(count.adj*Length_m)),
-speed.count.adj.all=(sum(count.adj.all*Length_m*speed.wtd1)/sum(count.adj.all*Length_m)),
-delay.85.volume= (sum(volume*Length_m/speed.wtd1)-sum(volume*Length_m/speed85))/(1609.34*5*12), #1609.34 adjusts from meters to miles to normalize
-delay.85.count.adj= (sum(count.adj*Length_m/speed.wtd1)-sum(count.adj*Length_m/speed85))/(1609.34*5*12),
-delay.85.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd1)-sum(count.adj.all*Length_m/speed85))/(1609.34*5*12),
-delay.night.volume= (sum(volume*Length_m/speed.wtd2)-sum(volume*Length_m/night.speed))/(1609.34*5*12),
-delay.night.count.adj= (sum(count.adj*Length_m/speed.wtd2)-sum(count.adj*Length_m/night.speed))/(1609.34*5*12),
-delay.night.count.adj.all= (sum(count.adj.all*Length_m/speed.wtd2)-sum(count.adj.all*Length_m/night.speed))/(1609.34*5*12),
-vkt.volume=sum(volume*(Length_m/1000))/(5*12),
-vkt.count.adj=sum(count.adj*(Length_m/1000))/(5*12),
-vkt.count.adj.all=sum(count.adj.all*(Length_m/1000))/(5*12)
-)
-
-corridor.directional.hourly.perf.14
-
-setwd("Y:/modeling/out/corridors/") #sets the working directory.
-write.table(corridor.directional.hourly.perf.14, file = "corridor.directionally.hourly.perf.14.txt")
+corridor.directional.hourly.perf.14 <- tti_summary(dat.temp, c("hour","C_UID"), 5, 12)
 
 
+##################################
+# ARTERIAL CORRIDOR ADJUSTMENTS
+##################################
+
+# BELOW ARE SOME AD HOC ANALYSES WHICH NEED TO BE RUN TO EXTRACT QUEEN AND COLLEGE CORRECTLY,
+# AND ALSO TO EXTRACT THE TWO-PLUS STREET CORRIDORS (E.G. ALBION/WILSON, ETC.)
+
+########
+# 2014 #
+########
+
+tmp_p_uids <- c(19.1, 19.2, 13.1, 13.2, 17.1, 17.2)
+tmp_c_uids <- c(2.1, 2.2, 74.1, 74.2, 20.3, 20.4, 12.3, 12.4, 29.1, 29.2, 84.1, 84.2, 
+                33.3, 33.4, 63.3, 63.4, 78.1, 78.2, 28.1, 28.2)
+
+dat.14.0812 <- subset(dat.14, subset = (P_UID %in% tmp_p_uids | C_UID %in% tmp_c_uids))
+dat.14.0812$Ponly_bin <- 0
+dat.14.0812$noP_bin <- 0
+dat.14.0812$Ponly_bin[dat.14.0812$P_UID %in% temp_p_uids] <- 1
+dat.14.0812$noP_bin[dat.14.0812$Ponly_bin == 0] <- 1
+
+dat.14.0812$LengthUID <- dat.14.0812$noP_bin * dat.14.0812$CorridorUID 
+                            + dat.14.0812$Ponly_bin * floor(dat.14.0812$P_UID)
+
+dat.14.0812$L_UID <- dat.14.0812$noP_bin * dat.14.0812$C_UID
+                            + dat.14.0812$Ponly_bin * dat.14.0812$P_UID
+
+dat.14.0812$LengthUID[dat.14.0812$LengthUID == 2 | dat.14.0812$LengthUID == 74] <- 2
+dat.14.0812$LengthUID[dat.14.0812$LengthUID == 20 | dat.14.0812$LengthUID == 12] <- 12
+dat.14.0812$LengthUID[dat.14.0812$LengthUID == 29 | dat.14.0812$LengthUID == 84] <- 29
+dat.14.0812$LengthUID[dat.14.0812$LengthUID == 33 | dat.14.0812$LengthUID == 63] <- 33
+dat.14.0812$LengthUID[dat.14.0812$LengthUID == 78 | dat.14.0812$LengthUID == 28] <- 28
 
 
+dat.14.0812$L_UID[dat.14.0812$L_UID == 2.1 | dat.14.0812$L_UID == 74.1] <- 2.1
+dat.14.0812$L_UID[dat.14.0812$L_UID == 20.3 | dat.14.0812$L_UID == 12.3] <- 12.3
+dat.14.0812$L_UID[dat.14.0812$L_UID == 29.1 | dat.14.0812$L_UID == 84.1] <- 29.1
+dat.14.0812$L_UID[dat.14.0812$L_UID == 33.3 | dat.14.0812$L_UID == 63.3] <- 33.3
+dat.14.0812$L_UID[dat.14.0812$L_UID == 78.1 | dat.14.0812$L_UID == 28.1] <- 28.1
+
+dat.14.0812$L_UID[dat.14.0812$L_UID == 2.2 | dat.14.0812$L_UID == 74.2] <- 2.2
+dat.14.0812$L_UID[dat.14.0812$L_UID == 20.4 | dat.14.0812$L_UID == 12.4] <- 12.4
+dat.14.0812$L_UID[dat.14.0812$L_UID == 29.2 | dat.14.0812$L_UID == 84.2] <- 29.2
+dat.14.0812$L_UID[dat.14.0812$L_UID == 33.4 | dat.14.0812$L_UID == 63.4] <- 33.4
+dat.14.0812$L_UID[dat.14.0812$L_UID == 78.2 | dat.14.0812$L_UID == 28.2] <- 28.2
 
 
+########
+# 2013 #
+########
+
+tmp_p_uids <- c(19.1, 19.2, 13.1, 13.2, 17.1, 17.2)
+tmp_c_uids <- c(2.1, 2.2, 74.1, 74.2, 20.3, 20.4, 12.3, 12.4, 29.1, 29.2, 84.1, 84.2, 
+                33.3, 33.4, 63.3, 63.4, 78.1, 78.2, 28.1, 28.2)
+
+dat.13.0812 <- subset(dat.13, subset = (P_UID %in% tmp_p_uids | C_UID %in% tmp_c_uids))
+dat.13.0812$Ponly_bin <- 0
+dat.13.0812$noP_bin <- 0
+dat.13.0812$Ponly_bin[dat.13.0812$P_UID %in% temp_p_uids] <- 1
+dat.13.0812$noP_bin[dat.13.0812$Ponly_bin == 0] <- 1
+
+dat.13.0812$LengthUID <- dat.13.0812$noP_bin * dat.13.0812$CorridorUID 
++ dat.13.0812$Ponly_bin * floor(dat.13.0812$P_UID)
+
+dat.13.0812$L_UID <- dat.13.0812$noP_bin * dat.13.0812$C_UID
++ dat.13.0812$Ponly_bin * dat.13.0812$P_UID
+
+dat.13.0812$LengthUID[dat.13.0812$LengthUID == 2 | dat.13.0812$LengthUID == 74] <- 2
+dat.13.0812$LengthUID[dat.13.0812$LengthUID == 20 | dat.13.0812$LengthUID == 12] <- 12
+dat.13.0812$LengthUID[dat.13.0812$LengthUID == 29 | dat.13.0812$LengthUID == 84] <- 29
+dat.13.0812$LengthUID[dat.13.0812$LengthUID == 33 | dat.13.0812$LengthUID == 63] <- 33
+dat.13.0812$LengthUID[dat.13.0812$LengthUID == 78 | dat.13.0812$LengthUID == 28] <- 28
 
 
+dat.13.0812$L_UID[dat.13.0812$L_UID == 2.1 | dat.13.0812$L_UID == 74.1] <- 2.1
+dat.13.0812$L_UID[dat.13.0812$L_UID == 20.3 | dat.13.0812$L_UID == 12.3] <- 12.3
+dat.13.0812$L_UID[dat.13.0812$L_UID == 29.1 | dat.13.0812$L_UID == 84.1] <- 29.1
+dat.13.0812$L_UID[dat.13.0812$L_UID == 33.3 | dat.13.0812$L_UID == 63.3] <- 33.3
+dat.13.0812$L_UID[dat.13.0812$L_UID == 78.1 | dat.13.0812$L_UID == 28.1] <- 28.1
 
-#BELOW ARE SOME AD HOC ANALYSES WHICH NEED TO BE RUN TO EXTRACT QUEEN AND COLLEGE CORRECTLY, AND ALSO TO EXTRACT THE TWO-PLUS STREET CORRIDORS (E.G. ALBION/WILSON, ETC.)
-#2014 adjustments
-dat.14.0812<-subset(dat.14, subset = (
-  P_UID == 19.1 | P_UID == 19.2 | P_UID == 13.1 | P_UID == 13.2 | C_UID == 2.1 | C_UID == 2.2 | C_UID == 74.1 | C_UID == 74.2 |
-    C_UID == 20.3 | C_UID == 20.4 | C_UID == 12.3 | C_UID == 12.4 | C_UID == 29.1 | C_UID == 29.2 | C_UID == 84.1 | C_UID == 84.2 | 
-    C_UID == 33.3| C_UID == 33.4 | C_UID == 63.3 | C_UID == 63.4 | P_UID == 17.1 | P_UID == 17.2 | C_UID == 78.1 | C_UID == 78.2 | 
-    C_UID == 28.1 | C_UID == 28.2))
-#P_UID and C_UID are numeric.  
-dim(dat.14.0812)
-dat.14.0812$Ponly_bin<-0
-dat.14.0812$Ponly_bin[dat.14.0812$P_UID == 19.1 | dat.14.0812$P_UID == 19.2 | dat.14.0812$P_UID == 13.1 | dat.14.0812$P_UID == 13.2 | dat.14.0812$P_UID == 17.1 | dat.14.0812$P_UID == 17.2]<-1
-dat.14.0812$noP_bin<-0
-dat.14.0812$noP_bin[dat.14.0812$Ponly_bin== 0]<-1
-
-dat.14.0812$LengthUID<-dat.14.0812$noP_bin*dat.14.0812$CorridorUID + dat.14.0812$Ponly_bin*floor(dat.14.0812$P_UID)
-dat.14.0812$L_UID<-dat.14.0812$noP_bin*dat.14.0812$C_UID + dat.14.0812$Ponly_bin*dat.14.0812$P_UID
-dat.14.0812$LengthUID[dat.14.0812$LengthUID == 2 | dat.14.0812$LengthUID == 74]<-2
-dat.14.0812$LengthUID[dat.14.0812$LengthUID == 20 | dat.14.0812$LengthUID == 12]<-12
-dat.14.0812$LengthUID[dat.14.0812$LengthUID == 29 | dat.14.0812$LengthUID == 84]<-29
-dat.14.0812$LengthUID[dat.14.0812$LengthUID == 33 | dat.14.0812$LengthUID == 63]<-33
-dat.14.0812$LengthUID[dat.14.0812$LengthUID == 78 | dat.14.0812$LengthUID == 28]<-28
+dat.13.0812$L_UID[dat.13.0812$L_UID == 2.2 | dat.13.0812$L_UID == 74.2] <- 2.2
+dat.13.0812$L_UID[dat.13.0812$L_UID == 20.4 | dat.13.0812$L_UID == 12.4] <- 12.4
+dat.13.0812$L_UID[dat.13.0812$L_UID == 29.2 | dat.13.0812$L_UID == 84.2] <- 29.2
+dat.13.0812$L_UID[dat.13.0812$L_UID == 33.4 | dat.13.0812$L_UID == 63.4] <- 33.4
+dat.13.0812$L_UID[dat.13.0812$L_UID == 78.2 | dat.13.0812$L_UID == 28.2] <- 28.2
 
 
-dat.14.0812$L_UID[dat.14.0812$L_UID == 2.1 | dat.14.0812$L_UID == 74.1]<-2.1
-dat.14.0812$L_UID[dat.14.0812$L_UID == 20.3 | dat.14.0812$L_UID == 12.3]<-12.3
-dat.14.0812$L_UID[dat.14.0812$L_UID == 29.1 | dat.14.0812$L_UID == 84.1]<-29.1
-dat.14.0812$L_UID[dat.14.0812$L_UID == 33.3 | dat.14.0812$L_UID == 63.3]<-33.3
-dat.14.0812$L_UID[dat.14.0812$L_UID == 78.1 | dat.14.0812$L_UID == 28.1]<-28.1
+########
+# 2011 #
+########
 
-dat.14.0812$L_UID[dat.14.0812$L_UID == 2.2 | dat.14.0812$L_UID == 74.2]<-2.2
-dat.14.0812$L_UID[dat.14.0812$L_UID == 20.4 | dat.14.0812$L_UID == 12.4]<-12.4
-dat.14.0812$L_UID[dat.14.0812$L_UID == 29.2 | dat.14.0812$L_UID == 84.2]<-29.2
-dat.14.0812$L_UID[dat.14.0812$L_UID == 33.4 | dat.14.0812$L_UID == 63.4]<-33.4
-dat.14.0812$L_UID[dat.14.0812$L_UID == 78.2 | dat.14.0812$L_UID == 28.2]<-28.2
+tmp_p_uids <- c(19.1, 19.2, 13.1, 13.2, 17.1, 17.2)
+tmp_c_uids <- c(2.1, 2.2, 74.1, 74.2, 20.3, 20.4, 12.3, 12.4, 29.1, 29.2, 84.1, 84.2, 
+                33.3, 33.4, 63.3, 63.4, 78.1, 78.2, 28.1, 28.2)
 
+dat.11.0812 <- subset(dat.11, subset = (P_UID %in% tmp_p_uids | C_UID %in% tmp_c_uids))
+dat.11.0812$Ponly_bin <- 0
+dat.11.0812$noP_bin <- 0
+dat.11.0812$Ponly_bin[dat.11.0812$P_UID %in% temp_p_uids] <- 1
+dat.11.0812$noP_bin[dat.11.0812$Ponly_bin == 0] <- 1
 
+dat.11.0812$LengthUID <- dat.11.0812$noP_bin * dat.11.0812$CorridorUID 
++ dat.11.0812$Ponly_bin * floor(dat.11.0812$P_UID)
 
-#BELOW ARE SOME AD HOC ANALYSES WHICH NEED TO BE RUN TO EXTRACT QUEEN AND COLLEGE CORRECTLY, AND ALSO TO EXTRACT THE TWO-PLUS STREET CORRIDORS (E.G. ALBION/WILSON, ETC.)
-#2013 adjustments
-dat.13.0812<-subset(dat.13, subset = (
-  P_UID == 19.1 | P_UID == 19.2 | P_UID == 13.1 | P_UID == 13.2 | C_UID == 2.1 | C_UID == 2.2 | C_UID == 74.1 | C_UID == 74.2 |
-    C_UID == 20.3 | C_UID == 20.4 | C_UID == 12.3 | C_UID == 12.4 | C_UID == 29.1 | C_UID == 29.2 | C_UID == 84.1 | C_UID == 84.2 | 
-    C_UID == 33.3| C_UID == 33.4 | C_UID == 63.3 | C_UID == 63.4 | P_UID == 17.1 | P_UID == 17.2 | C_UID == 78.1 | C_UID == 78.2 | 
-    C_UID == 28.1 | C_UID == 28.2))
-#P_UID and C_UID are numeric.  
-dim(dat.13.0812)
-dat.13.0812$Ponly_bin<-0
-dat.13.0812$Ponly_bin[dat.13.0812$P_UID == 19.1 | dat.13.0812$P_UID == 19.2 | dat.13.0812$P_UID == 13.1 | dat.13.0812$P_UID == 13.2 | dat.13.0812$P_UID == 17.1 | dat.13.0812$P_UID == 17.2]<-1
-dat.13.0812$noP_bin<-0
-dat.13.0812$noP_bin[dat.13.0812$Ponly_bin== 0]<-1
+dat.11.0812$L_UID <- dat.11.0812$noP_bin * dat.11.0812$C_UID
++ dat.11.0812$Ponly_bin * dat.11.0812$P_UID
 
-dat.13.0812$LengthUID<-dat.13.0812$noP_bin*dat.13.0812$CorridorUID + dat.13.0812$Ponly_bin*floor(dat.13.0812$P_UID)
-dat.13.0812$L_UID<-dat.13.0812$noP_bin*dat.13.0812$C_UID + dat.13.0812$Ponly_bin*dat.13.0812$P_UID
-dat.13.0812$LengthUID[dat.13.0812$LengthUID == 2 | dat.13.0812$LengthUID == 74]<-2
-dat.13.0812$LengthUID[dat.13.0812$LengthUID == 20 | dat.13.0812$LengthUID == 12]<-12
-dat.13.0812$LengthUID[dat.13.0812$LengthUID == 29 | dat.13.0812$LengthUID == 84]<-29
-dat.13.0812$LengthUID[dat.13.0812$LengthUID == 33 | dat.13.0812$LengthUID == 63]<-33
-dat.13.0812$LengthUID[dat.13.0812$LengthUID == 78 | dat.13.0812$LengthUID == 28]<-28
+dat.11.0812$LengthUID[dat.11.0812$LengthUID == 2 | dat.11.0812$LengthUID == 74] <- 2
+dat.11.0812$LengthUID[dat.11.0812$LengthUID == 20 | dat.11.0812$LengthUID == 12] <- 12
+dat.11.0812$LengthUID[dat.11.0812$LengthUID == 29 | dat.11.0812$LengthUID == 84] <- 29
+dat.11.0812$LengthUID[dat.11.0812$LengthUID == 33 | dat.11.0812$LengthUID == 63] <- 33
+dat.11.0812$LengthUID[dat.11.0812$LengthUID == 78 | dat.11.0812$LengthUID == 28] <- 28
 
 
-dat.13.0812$L_UID[dat.13.0812$L_UID == 2.1 | dat.13.0812$L_UID == 74.1]<-2.1
-dat.13.0812$L_UID[dat.13.0812$L_UID == 20.3 | dat.13.0812$L_UID == 12.3]<-12.3
-dat.13.0812$L_UID[dat.13.0812$L_UID == 29.1 | dat.13.0812$L_UID == 84.1]<-29.1
-dat.13.0812$L_UID[dat.13.0812$L_UID == 33.3 | dat.13.0812$L_UID == 63.3]<-33.3
-dat.13.0812$L_UID[dat.13.0812$L_UID == 78.1 | dat.13.0812$L_UID == 28.1]<-28.1
+dat.11.0812$L_UID[dat.11.0812$L_UID == 2.1 | dat.11.0812$L_UID == 74.1] <- 2.1
+dat.11.0812$L_UID[dat.11.0812$L_UID == 20.3 | dat.11.0812$L_UID == 12.3] <- 12.3
+dat.11.0812$L_UID[dat.11.0812$L_UID == 29.1 | dat.11.0812$L_UID == 84.1] <- 29.1
+dat.11.0812$L_UID[dat.11.0812$L_UID == 33.3 | dat.11.0812$L_UID == 63.3] <- 33.3
+dat.11.0812$L_UID[dat.11.0812$L_UID == 78.1 | dat.11.0812$L_UID == 28.1] <- 28.1
 
-dat.13.0812$L_UID[dat.13.0812$L_UID == 2.2 | dat.13.0812$L_UID == 74.2]<-2.2
-dat.13.0812$L_UID[dat.13.0812$L_UID == 20.4 | dat.13.0812$L_UID == 12.4]<-12.4
-dat.13.0812$L_UID[dat.13.0812$L_UID == 29.2 | dat.13.0812$L_UID == 84.2]<-29.2
-dat.13.0812$L_UID[dat.13.0812$L_UID == 33.4 | dat.13.0812$L_UID == 63.4]<-33.4
-dat.13.0812$L_UID[dat.13.0812$L_UID == 78.2 | dat.13.0812$L_UID == 28.2]<-28.2
+dat.11.0812$L_UID[dat.11.0812$L_UID == 2.2 | dat.11.0812$L_UID == 74.2] <- 2.2
+dat.11.0812$L_UID[dat.11.0812$L_UID == 20.4 | dat.11.0812$L_UID == 12.4] <- 12.4
+dat.11.0812$L_UID[dat.11.0812$L_UID == 29.2 | dat.11.0812$L_UID == 84.2] <- 29.2
+dat.11.0812$L_UID[dat.11.0812$L_UID == 33.4 | dat.11.0812$L_UID == 63.4] <- 33.4
+dat.11.0812$L_UID[dat.11.0812$L_UID == 78.2 | dat.11.0812$L_UID == 28.2] <- 28.2
 
-
-
-#BELOW ARE SOME AD HOC ANALYSES WHICH NEED TO BE RUN TO EXTRACT QUEEN AND COLLEGE CORRECTLY, AND ALSO TO EXTRACT THE TWO-PLUS STREET CORRIDORS (E.G. ALBION/WILSON, ETC.)
-#2011 adjustments
-dat.11.0812<-subset(dat.11, subset = (
-  P_UID == 19.1 | P_UID == 19.2 | P_UID == 13.1 | P_UID == 13.2 | C_UID == 2.1 | C_UID == 2.2 | C_UID == 74.1 | C_UID == 74.2 |
-    C_UID == 20.3 | C_UID == 20.4 | C_UID == 12.3 | C_UID == 12.4 | C_UID == 29.1 | C_UID == 29.2 | C_UID == 84.1 | C_UID == 84.2 | 
-    C_UID == 33.3| C_UID == 33.4 | C_UID == 63.3 | C_UID == 63.4 | P_UID == 17.1 | P_UID == 17.2 | C_UID == 78.1 | C_UID == 78.2 | 
-    C_UID == 28.1 | C_UID == 28.2))
-#P_UID and C_UID are numeric.  
-dim(dat.11.0812)
-dat.11.0812$Ponly_bin<-0
-dat.11.0812$Ponly_bin[dat.11.0812$P_UID == 19.1 | dat.11.0812$P_UID == 19.2 | dat.11.0812$P_UID == 13.1 | dat.11.0812$P_UID == 13.2 | dat.11.0812$P_UID == 17.1 | dat.11.0812$P_UID == 17.2]<-1
-dat.11.0812$noP_bin<-0
-dat.11.0812$noP_bin[dat.11.0812$Ponly_bin== 0]<-1
-
-dat.11.0812$LengthUID<-dat.11.0812$noP_bin*dat.11.0812$CorridorUID + dat.11.0812$Ponly_bin*floor(dat.11.0812$P_UID)
-dat.11.0812$L_UID<-dat.11.0812$noP_bin*dat.11.0812$C_UID + dat.11.0812$Ponly_bin*dat.11.0812$P_UID
-dat.11.0812$LengthUID[dat.11.0812$LengthUID == 2 | dat.11.0812$LengthUID == 74]<-2
-dat.11.0812$LengthUID[dat.11.0812$LengthUID == 20 | dat.11.0812$LengthUID == 12]<-12
-dat.11.0812$LengthUID[dat.11.0812$LengthUID == 29 | dat.11.0812$LengthUID == 84]<-29
-dat.11.0812$LengthUID[dat.11.0812$LengthUID == 33 | dat.11.0812$LengthUID == 63]<-33
-dat.11.0812$LengthUID[dat.11.0812$LengthUID == 78 | dat.11.0812$LengthUID == 28]<-28
-
-
-dat.11.0812$L_UID[dat.11.0812$L_UID == 2.1 | dat.11.0812$L_UID == 74.1]<-2.1
-dat.11.0812$L_UID[dat.11.0812$L_UID == 20.3 | dat.11.0812$L_UID == 12.3]<-12.3
-dat.11.0812$L_UID[dat.11.0812$L_UID == 29.1 | dat.11.0812$L_UID == 84.1]<-29.1
-dat.11.0812$L_UID[dat.11.0812$L_UID == 33.3 | dat.11.0812$L_UID == 63.3]<-33.3
-dat.11.0812$L_UID[dat.11.0812$L_UID == 78.1 | dat.11.0812$L_UID == 28.1]<-28.1
-
-dat.11.0812$L_UID[dat.11.0812$L_UID == 2.2 | dat.11.0812$L_UID == 74.2]<-2.2
-dat.11.0812$L_UID[dat.11.0812$L_UID == 20.4 | dat.11.0812$L_UID == 12.4]<-12.4
-dat.11.0812$L_UID[dat.11.0812$L_UID == 29.2 | dat.11.0812$L_UID == 84.2]<-29.2
-dat.11.0812$L_UID[dat.11.0812$L_UID == 33.4 | dat.11.0812$L_UID == 63.4]<-33.4
-dat.11.0812$L_UID[dat.11.0812$L_UID == 78.2 | dat.11.0812$L_UID == 28.2]<-28.2
-
-
+#############
+# SUMMARIES #
+#############
 
 dat.temp<-subset(dat.14.0812, subset = weekday.bin ==1)
 dat.temp$Freeway[dat.temp$Freeway==2]<-0
@@ -1565,56 +1326,60 @@ corridor.directional.weekday.perf.14.0812 <- tti_summary(dat.temp, c("hour","wee
 ############################## 
 
 
-dat.gardiner.wb<-subset(dat.all, subset = C_UID == 29.2 | C_UID == 84.2)
-dim(dat.gardiner.wb)
-hist(dat.gardiner.wb$year)
-dat.temp<-subset(dat.gardiner.wb, subset = (month<12 & month >8))
-dim(dat.temp)
-hist(dat.temp$year)
-
-
-lmer.gardiner.wb<-lmer(speed.wtd~1+(1|tmc:hour:weekday)+ (1|hour:month:year) + (1|month) + (1|year) + (1|hour:weekday.bin), 
-               data = dat.gardiner, weights = weight.adj.all, subset = (month<12 & month >8))
+dat.gardiner.wb <- subset(dat.all, subset = C_UID == 29.2 | C_UID == 84.2)
+lmer.gardiner.wb <- lmer( speed.wtd ~ 1
+                          + (1|tmc:hour:weekday)
+                          + (1|hour:month:year)
+                          + (1|month)
+                          + (1|year)
+                          + (1|hour:weekday.bin),
+                          data = dat.gardiner.wb,
+                          weights = weight.adj.all,
+                          subset = (month<12 & month >8))
+tidy(lmer.gardiner.wb)
+fixef(lmer.gardiner.wb)
 ranef(lmer.gardiner.wb)
 
 dat.gardiner.wb$tti.85<-dat.gardiner.wb$speed85/dat.gardiner.wb$speed.wtd1
-lmer.gardiner.wb.tti<-lmer(tti.85~1+(1|tmc:hour:weekday)+ (1|hour:month:year) + (1|month) + (1|year) + (1|hour:weekday.bin), 
-                       data = dat.gardiner.wb, weights = weight.adj.all, subset = (month<12 & month >8))
+lmer.gardiner.wb.tti <- lmer( tti.85 ~ 1
+                              + (1|tmc:hour:weekday)
+                              + (1|hour:month:year)
+                              + (1|month)
+                              + (1|year)
+                              + (1|hour:weekday.bin), 
+                              data = dat.gardiner.wb,
+                              weights = weight.adj.all,
+                              subset = (month<12 & month >8))
+tidy(lmer.gardiner.wb.tti)
 ranef(lmer.gardiner.wb.tti)
 fixef(lmer.gardiner.wb.tti)
 
 
 
 dat.gardiner.eb<-subset(dat.all, subset = C_UID == 29.1 | C_UID == 84.1)
-dim(dat.gardiner.eb)
-hist(dat.gardiner.eb$year)
-dat.temp<-subset(dat.gardiner.eb, subset = (month<12 & month >8))
-dim(dat.temp)
-hist(dat.temp$year)
-
-
-lmer.gardiner.eb<-lmer(speed.wtd~1+(1|tmc:hour:weekday)+ (1|hour:month:year) + (1|month) + (1|year) + (1|hour:weekday.bin), 
-                    data = dat.gardiner.eb, weights = weight.adj.all, subset = ((month<12 & month >8) & (hour == 8 | hour == 17)))
+lmer.gardiner.eb <- lmer( speed.wtd ~ 1
+                          + (1|tmc:hour:weekday)
+                          + (1|hour:month:year)
+                          + (1|month)
+                          + (1|year)
+                          + (1|hour:weekday.bin),
+                          data = dat.gardiner.eb,
+                          weights = weight.adj.all,
+                          subset = (month<12 & month >8))
+tidy(lmer.gardiner.eb)
+fixef(lmer.gardiner.eb)
 ranef(lmer.gardiner.eb)
 
 dat.gardiner.eb$tti.85<-dat.gardiner.eb$speed85/dat.gardiner.eb$speed.wtd1
-lmer.gardiner.eb.tti<-lmer(tti.85~1+(1|tmc:hour:weekday)+ (1|hour:month:year) + (1|month) + (1|year) + (1|hour:weekday.bin), 
-                           data = dat.gardiner.eb, weights = weight.adj.all, subset = (month<12 & month >8))
+lmer.gardiner.eb.tti <- lmer( tti.85 ~ 1
+                              + (1|tmc:hour:weekday)
+                              + (1|hour:month:year)
+                              + (1|month)
+                              + (1|year)
+                              + (1|hour:weekday.bin), 
+                              data = dat.gardiner.eb,
+                              weights = weight.adj.all,
+                              subset = (month<12 & month >8))
+tidy(lmer.gardiner.eb.tti)
 ranef(lmer.gardiner.eb.tti)
 fixef(lmer.gardiner.eb.tti)
-
-
-
-
-lmer.gardiner.eb.tti1<-lmer(tti.85~1+(1|tmc:weekday)+ (1|month:year) , 
-                           data = dat.gardiner.eb, weights = weight.adj.all, subset = (month<12 & month >8 & hour == 8))
-ranef(lmer.gardiner.eb.tti1)
-fixef(lmer.gardiner.eb.tti1)
-
-
-lmer.gardiner.eb.1<-lmer(speed.wtd~1+(1|tmc:weekday)+ (1|month:year) , 
-                            data = dat.gardiner.eb, weights = weight.adj.all, subset = (month<12 & month >8 & hour == 8))
-ranef(lmer.gardiner.eb.1)
-fixef(lmer.gardiner.eb.1)
-
-
