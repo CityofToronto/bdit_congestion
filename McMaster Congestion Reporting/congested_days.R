@@ -6,7 +6,7 @@ library(stringr)
 library(lme4)
 
 analysis_year <- 2014
-freeway_flag <- 0
+freeway_flag <- 1
 dir.create(file.path(paste0(getwd(),"/out"), paste0(analysis_year,"_daily")), showWarnings = FALSE)
 all_months <- c("Jan", "Feb", "Mar", "Apr", "May", "June", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 seasons <- c("winter", "winter", "winter", "spring", "spring", "spring", "summer", "summer", "summer",
@@ -30,7 +30,7 @@ source("connect/connect.R")
 avail_months = 1:12
 
 for (i in avail_months) {
-  strSQL = paste("SELECT TMC.tmc, TMC.length_m, ", 
+  strSQL = paste("SELECT VOL.id, SUM(TMC.length_m) AS length_m, ", 
                  "DATE_TRUNC('day', EHR.datetime_bin) AS day_only, ",
                  "EHR.weekday, VOL.hour, ",
                  "SUM(EHR.speed * VOL.volume * TMC.length_m) / SUM(VOL.volume * TMC.length_m) AS speedwtd, ",
@@ -42,7 +42,7 @@ for (i in avail_months) {
                  "AND TMC.freeway = ",freeway_flag," ",
                  "AND EXTRACT(YEAR FROM EHR.datetime_bin) = ",analysis_year,
                  " AND EHR.month = ",i,
-                 " GROUP BY TMC.tmc, TMC.length_m, DATE_TRUNC('day', EHR.datetime_bin), ",
+                 " GROUP BY VOL.id, DATE_TRUNC('day', EHR.datetime_bin), ",
                  "EHR.month, EHR.weekday, VOL.hour",
                  sep = '')
   dat.temp <- dbGetQuery(con, strSQL)
@@ -58,7 +58,7 @@ for (i in avail_months) {
   dat.hour$weight <- (dat.hour$vol*dat.hour$length_m) / mean((dat.hour$vol*dat.hour$length_m))
     
   lmer.hour <- lmer( speedwtd ~ 1 +
-                       (1|tmc:hour)
+                       (1|id:hour)
                      + (1|day_only)
                      , data = dat.hour
                      , weights = weight)
@@ -196,11 +196,11 @@ for (i in avail_months){
   dat.temp <- read.csv(file = paste0("in/",analysis_year,"/hourly_",analysis_year,"_",sprintf("%02d",i),".csv"))
   dat.temp <- subset(dat.temp, subset = (dat.temp$hour >= 15 & dat.temp$hour <= 18))
   dat.temp$vol.length <- dat.temp$vol*dat.temp$length_m
-  dat.temp <- dat.temp[c("tmc","length_m","day_only","weekday","hour","speedwtd","vol")]
+  dat.temp <- dat.temp[c("id","length_m","day_only","weekday","hour","speedwtd","vol")]
   dat.temp$weight<-(dat.temp$vol*dat.temp$length_m)/mean((dat.temp$vol*dat.temp$length_m))
   
   lmer.hour <- lmer( speedwtd ~ 1
-                     + (1|tmc:hour)
+                     + (1|id:hour)
                      + (1|day_only), 
                      data = dat.temp,
                      weights = weight)
@@ -315,11 +315,11 @@ for (i in avail_months){
   dat.hour <- rbind(dat.hour, dat.temp)
 }
 
-dat.hour <- dat.hour[c("tmc","day_only","weekday","hour","speedwtd","vol","length_m")]
+dat.hour <- dat.hour[c("id","day_only","weekday","hour","speedwtd","vol","length_m")]
 dat.hour$weight <- (dat.hour$vol*dat.hour$length_m)/mean((dat.hour$vol*dat.hour$length_m))
 
 lmer.hour.slowest <- lmer( speedwtd ~ 1
-                           + (1|tmc:hour)
+                           + (1|id:hour)
                            + (1|day_only), 
                            data = dat.hour,
                            weights = weight)
@@ -381,11 +381,11 @@ for (i in avail_months){
   dat.hour <- rbind(dat.hour, dat.temp)
 }
 
-dat.hour <- dat.hour[c("tmc","day_only","weekday","hour","speedwtd","vol","length_m")]
+dat.hour <- dat.hour[c("id","day_only","weekday","hour","speedwtd","vol","length_m")]
 dat.hour$weight <- (dat.hour$vol*dat.hour$length_m)/mean((dat.hour$vol*dat.hour$length_m))
 
 lmer.hour.fastest <- lmer( speedwtd ~ 1
-                           + (1|tmc:hour)
+                           + (1|id:hour)
                            + (1|day_only), 
                            data = dat.hour,
                            weights = weight)
