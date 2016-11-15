@@ -122,13 +122,11 @@ dat.14a <-
              header = TRUE)
 dat.14a <-
     melt(dat.14a, id="newADD")
-colnames(dat.14a) <- c("newADD", "time.factor1", "volume1")
+colnames(dat.14a) <- c("newADD", "hour", "volume")
 
-time.factor <- as.numeric(dat.14a$time.factor1)
-volume      <- as.numeric(dat.14a$volume1)
-newADD      <- as.numeric(dat.14a$newADD)
-dat.14a     <- data.frame(cbind(newADD, time.factor, volume))
-rm(time.factor, volume, newADD)
+dat.14a$newADD      <- as.numeric(dat.14a$newADD)
+dat.14a$hour        <- as.numeric(dat.14a$hour)
+dat.14a$volume      <- as.numeric(dat.14a$volume)
 
 ########
 # 2013 #
@@ -139,13 +137,11 @@ dat.13a <-
              header = TRUE)
 dat.13a <-
   melt(dat.13a, id="newADD")
-colnames(dat.13a) <- c("newADD", "time.factor1", "volume1")
+colnames(dat.13a) <- c("newADD", "hour", "volume")
 
-time.factor <- as.numeric(dat.13a$time.factor1)
-volume      <- as.numeric(dat.13a$volume1)
-newADD      <- as.numeric(dat.13a$newADD)
-dat.13a     <- data.frame(cbind(newADD, time.factor, volume))
-rm(time.factor, volume, newADD)
+dat.13a$newADD      <- as.numeric(dat.13a$newADD)
+dat.13a$hour        <- as.numeric(dat.13a$hour)
+dat.13a$volume      <- as.numeric(dat.13a$volume)
 
 ########
 # 2011 #
@@ -156,19 +152,13 @@ dat.11a <-
              header = TRUE)
 dat.11a <-
   melt(dat.11a, id="newADD")
-colnames(dat.11a) <- c("newADD", "time.factor1", "volume1")
+colnames(dat.11a) <- c("newADD", "hour", "volume")
 
-time.factor <- as.numeric(dat.11a$time.factor1)
-volume      <- as.numeric(dat.11a$volume1)
-newADD      <- as.numeric(dat.11a$newADD)
-dat.11a     <- data.frame(cbind(newADD, time.factor, volume))
-rm(time.factor, volume, newADD)
+dat.11a$newADD      <- as.numeric(dat.11a$newADD)
+dat.11a$hour        <- as.numeric(dat.11a$hour)
+dat.11a$volume      <- as.numeric(dat.11a$volume)
 
-
-# Clean up Column Names
-colnames(dat.14a)[colnames(dat.14a)=="time.factor"] <- "hour"
-colnames(dat.13a)[colnames(dat.13a)=="time.factor"] <- "hour"
-colnames(dat.11a)[colnames(dat.11a)=="time.factor"] <- "hour"
+# CLEAN UP COLUMN NAMES
 colnames(torNetwork_UIDs_feb10)[colnames(torNetwork_UIDs_feb10)=="Tmc"] <- "tmc"
 colnames(dat.final.net)[colnames(dat.final.net)=="Tmc"] <- "tmc"
 
@@ -303,7 +293,6 @@ save.image("CITY_TRENDS.RData")
 ##############################################
 # MTO ADJUSTMENTS
 ##############################################
-
 dat.mto.vol$date <- as.Date(dat.mto.vol$date, format = "%d-%m-%Y")
 dat.mto.vol$month <- as.numeric(format(dat.mto.vol$date, format = "%m"))
 dat.mto.vol$year <- 2013
@@ -313,7 +302,6 @@ dat.mto.vol$year[dat.mto.vol$mto.location.id > 28] <- 2014
 ##############################################
 # MTO VOLUME ADJUSTMENTS - MODEL TESTING
 ##############################################
-
 dat.13a <- dat.13[,c("weekday", "month", "hour", "newADD", "count.adj", "CorridorUID")]
 dat.13a$year <- 2013
 
@@ -363,7 +351,6 @@ oth_corridors = c(87,89)
 ########
 # 2014 #
 ########
-
 dat.14$CorridorUID1 <- dat.14$CorridorUID
 dat.14$CorridorUID1[!(dat.14$CorridorUID %in% mto_corridors)] <- 88
 
@@ -380,7 +367,6 @@ dat.14$count.adj.all[dat.14$CorridorUID %in% oth_corridors] <-
 ########
 # 2013 #
 ########
-
 dat.13$CorridorUID1 <- dat.13$CorridorUID
 dat.13$CorridorUID1[!(dat.13$CorridorUID %in% mto_corridors)] <- 88
 
@@ -397,7 +383,6 @@ dat.13$count.adj.all[dat.13$CorridorUID %in% oth_corridors] <-
 ########
 # 2011 #
 ########
-
 dat.11$CorridorUID1 <- dat.11$CorridorUID
 dat.11$CorridorUID1[!(dat.11$CorridorUID %in% mto_corridors)] <- 88
 
@@ -437,14 +422,13 @@ dat.11$weight.vol <- (dat.11$volume*dat.11$Length_m) / mean(dat.11$volume*dat.11
 dat.11$weight.adj <- (dat.11$count.adj*dat.11$Length_m) / mean(dat.11$count.adj*dat.11$Length_m)
 dat.11$weight.adj.all <- (dat.11$count.adj.all*dat.11$Length_m)/mean(dat.11$count.adj.all*dat.11$Length_m)
 
+rm(dat.final.net, dat.mto.vol, dat.speed85, dat.tmc.newADD, torNetwork_UIDs_feb10)
+
+save.image("CITY_TRENDS.RData")
 
 ##############################################
 # MODELING
 ##############################################
-
-rm(dat.final.net, dat.mto.vol, dat.speed85, dat.tmc.newADD, torNetwork_UIDs_feb10)
-
-# speed ~ intercept + ranef(tmc/hour/wkday combo) + ranef(month)
 
 lmer.11b <- lmer( speed.wtd ~ 1 
                   + (1|tmc:hour:weekday) 
@@ -475,6 +459,8 @@ ranef(lmer.13b)
 tidy(lmer.11b)
 fixef(lmer.11b)
 ranef(lmer.11b)
+
+save.image("CITY_TRENDS.RData")
 
 ##############################
 # ADJUSTED BY weight.adj.all #
@@ -522,12 +508,14 @@ tidy(lmer.11c)
 fixef(lmer.11c)
 ranef(lmer.11c)
 
+#################################
+save.image("CITY_TRENDS.RData")
+#################################
 
 dat.11$year <- 2011
 dat.13$year <- 2013
 dat.14$year <- 2014
 dat.all <- data.frame(rbind(dat.11, dat.13, dat.14))
-
 
 # FREEWAY MODEL ONLY
 lmer.all <- lmer( speed.wtd ~ 1
@@ -540,6 +528,10 @@ lmer.all <- lmer( speed.wtd ~ 1
 tidy(lmer.all)
 fixef(lmer.all)
 ranef(lmer.all)
+
+#################################
+save.image("CITY_TRENDS_02.RData")
+#################################
 
 # FREEWAY MODEL
 lmer.fre.year.hourly <- lmer( speed.wtd ~ 1
@@ -565,28 +557,31 @@ tidy(lmer.art.year.hourly)
 fixef(lmer.art.year.hourly)
 ranef(lmer.art.year.hourly)
 
-
-save.image("CITY_TRENDS.RData")
-
-
+#################################
+save.image("CITY_TREND_02.RData")
+#################################
 
 #EXTRACTING THE RESULTS FOR FURTHER PROCESSING:
-summary.lmer.14b<-tidy(as.data.frame(ranef(lmer.14b)))
-n.12<-(dim(summary.lmer.14b)[1]-12)
-n<-dim(summary.lmer.14b)[1]
+summary.lmer.14b.month <- as.data.frame(ranef(lmer.14b)[2])
+summary.lmer.14b <- as.data.frame(ranef(lmer.14b)[1])
+colnames(summary.lmer.14b) <- "speed"
+colnames(summary.lmer.14b.month) <- "speed"
+summary.lmer.14b <- data.frame(cbind(
+  colsplit(row.names(summary.lmer.14b),":", c("tmc", "hour", "weekday")), 
+  summary.lmer.14b$speed))
+summary.lmer.14b.month <- data.frame(cbind(
+  row.names(summary.lmer.14b.month),
+  summary.lmer.14b.month$speed))
+names(summary.lmer.14b.month) <- c("month","speed")
+names(summary.lmer.14b) <- c("tmc","hour","weekday","speed")
 
-summary.lmer.14b.month<-summary.lmer.14b[(n.12+1):n,]
-summary.lmer.14b<-summary.lmer.14b[1:n.12,]
-dim(summary.lmer.14b)
-names(summary.lmer.14b)
-level1<-colsplit(summary.lmer.14b$level,":", c("tmc", "hour", "weekday"))
-summary.lmer.14b<-data.frame(cbind(level1, summary.lmer.14b$value))
-names(summary.lmer.14b)<-c("tmc", "hour", "weekday", "speed")
-summary.lmer.14b.month<-data.frame(summary.lmer.14b.month[,c("level", "value")])
-names(summary.lmer.14b.month)<-c("month", "speed")
-summary.lmer.14b.month
-summary.lmer.14b.month$speed<-summary.lmer.14b.month$speed*1.60934
-summary.lmer.14b$speed<-summary.lmer.14b$speed*1.60934
+summary.lmer.14b.month$speed <- as.numeric(as.character(summary.lmer.14b.month$speed))*1.60934
+summary.lmer.14b$speed <- as.numeric(as.character(summary.lmer.14b$speed))*1.60934
+
+
+
+### RESUME HERE 
+
 
 summary.lmer.14b<-merge(summary.lmer.14b, dat.tmc.newADD, by = "tmc", all = FALSE)
 summary.lmer.14b$newADD<-as.numeric(summary.lmer.14b$newADD)
