@@ -6,7 +6,7 @@ library(stringr)
 library(lme4)
 
 analysis_year <- 2014
-freeway_flag <- 1
+freeway_flag <- 0
 dir.create(file.path(paste0(getwd(),"/out"), paste0(analysis_year,"_daily")), showWarnings = FALSE)
 all_months <- c("Jan", "Feb", "Mar", "Apr", "May", "June", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 seasons <- c("winter", "winter", "winter", "spring", "spring", "spring", "summer", "summer", "summer",
