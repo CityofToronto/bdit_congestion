@@ -90,24 +90,10 @@ ENV/
 
 # Rope project settings
 .ropeproject
-McMaster Congestion Reporting/connect/connect.R
+McMaster Congestion Reporting/connect/*
 *.rda
 *.Rhistory
-McMaster Congestion Reporting/in/custom/2016_volumes.csv
-McMaster Congestion Reporting/in/custom/tmc_ref.csv
-McMaster Congestion Reporting/in/date_lookup_full.csv
-McMaster Congestion Reporting/in/final_net2011.csv
-McMaster Congestion Reporting/in/final_net.csv
-McMaster Congestion Reporting/in/date_lookup.csv
-McMaster Congestion Reporting/in/final_net2013.csv
-McMaster Congestion Reporting/in/final_net2014.csv
-McMaster Congestion Reporting/in/final_net2016.csv
-McMaster Congestion Reporting/in/tmc.fid.csv
-McMaster Congestion Reporting/in/torNetwork_UIDs_feb10.csv
-McMaster Congestion Reporting/in/trafficInrix_Join_Jan27b.csv
-McMaster Congestion Reporting/in/trafficInrix_Join_Jan27b_Freeways.csv
-McMaster Congestion Reporting/in/trafficInrix_Join_Jan27b_tmc_newADD.csv
-*.txt
-*.txt
+McMaster Congestion Reporting/in/*
+McMaster Congestion Reporting/out/*
 McMaster Congestion Reporting/.Rhistory
 *.RData
