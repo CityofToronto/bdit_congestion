@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Directories
+/connect/**
+
 # C extensions
 *.so
 
@@ -122,3 +125,10 @@ vignettes/*.pdf
 # Temporary files created by R markdown
 *.utf8.md
 *.knit.md
+McMaster Congestion Reporting/connect/*
+*.rda
+*.Rhistory
+McMaster Congestion Reporting/in/*
+McMaster Congestion Reporting/out/*
+McMaster Congestion Reporting/.Rhistory
+*.RData
