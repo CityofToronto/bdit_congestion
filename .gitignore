@@ -130,5 +130,6 @@ McMaster Congestion Reporting/connect/*
 *.Rhistory
 McMaster Congestion Reporting/in/*
 McMaster Congestion Reporting/out/*
+McMaster Congestion Reporting/analysis/*
 McMaster Congestion Reporting/.Rhistory
 *.RData

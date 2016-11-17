@@ -9,6 +9,7 @@ library(lme4)
 
 analysis_year = 2014
 mi_to_m = 1609.34
+avail_months <- 1:12
 
 ##############################################
 # IMPORT RAW DATA FROM POSTGRESQL
@@ -566,118 +567,99 @@ summary.lmer.14b.month <- as.data.frame(ranef(lmer.14b)[2])
 summary.lmer.14b <- as.data.frame(ranef(lmer.14b)[1])
 colnames(summary.lmer.14b) <- "speed"
 colnames(summary.lmer.14b.month) <- "speed"
+
 summary.lmer.14b <- data.frame(cbind(
   colsplit(row.names(summary.lmer.14b),":", c("tmc", "hour", "weekday")), 
   summary.lmer.14b$speed))
 summary.lmer.14b.month <- data.frame(cbind(
   row.names(summary.lmer.14b.month),
   summary.lmer.14b.month$speed))
+
 names(summary.lmer.14b.month) <- c("month","speed")
 names(summary.lmer.14b) <- c("tmc","hour","weekday","speed")
 
 summary.lmer.14b.month$speed <- as.numeric(as.character(summary.lmer.14b.month$speed))*1.60934
 summary.lmer.14b$speed <- as.numeric(as.character(summary.lmer.14b$speed))*1.60934
 
+# LOOKUP TABLE, linking newADD to TMC
+dat.tmc.newADD <-
+  read.table(file = paste(curr_dir,"trafficInrix_Join_Jan27b_tmc_newADD.csv",sep=""), 
+             sep = ",", 
+             col.names = c("newADD", "tmc"),
+             header = TRUE)
 
+# REFERENCE TABLE, newADD properties
+dat.final.net <- 
+  read.table(file = paste(curr_dir,"final_net.csv",sep=""), 
+             sep = ",", 
+             header = TRUE)
 
-### RESUME HERE 
+# FREE FLOW REFERENCE SPEEDS (by TMC), night.speed and 85.speed
+dat.speed85 <-
+  read.table(file = paste(curr_dir,"INRIX_speed85.txt",sep=""), 
+             header = TRUE)
 
+torNetwork_UIDs_feb10 <- 
+  read.table(paste(curr_dir,"torNetwork_UIDs_feb10.csv",sep=""), 
+             sep = ",", 
+             header = TRUE)
+torNetwork_UIDs_feb10 <- unique(torNetwork_UIDs_feb10)
 
-summary.lmer.14b<-merge(summary.lmer.14b, dat.tmc.newADD, by = "tmc", all = FALSE)
-summary.lmer.14b$newADD<-as.numeric(summary.lmer.14b$newADD)
-hist(summary.lmer.14b$newADD)
-summary.lmer.14b<-merge(summary.lmer.14b, dat.speed85, by = "tmc" , all = FALSE)
-summary.lmer.14b<-merge(summary.lmer.14b, torNetwork_UIDs_feb10, by = "tmc" , all = FALSE)
-dat.final.net1<-dat.final.net[,c("newADD", "Freeway", "Length_m")]
-summary.lmer.14b<-merge(summary.lmer.14b, dat.final.net1, by = "newADD", all = FALSE)
+summary.lmer.14b <- merge(summary.lmer.14b, dat.tmc.newADD, by = "tmc", all = FALSE)
+summary.lmer.14b$newADD <- as.numeric(summary.lmer.14b$newADD)
+summary.lmer.14b <- merge(summary.lmer.14b, dat.speed85, by = "tmc" , all = FALSE)
+summary.lmer.14b <- merge(summary.lmer.14b, torNetwork_UIDs_feb10, by = "tmc" , all = FALSE)
+dat.final.net1 <- dat.final.net[,c("newADD", "Freeway", "Length_m")]
+summary.lmer.14b <- merge(summary.lmer.14b, dat.final.net1, by = "newADD", all = FALSE)
+
+dat.14.vol <- unique(dat.14[c("newADD","hour","volume")])
+summary.lmer.14b <- merge(summary.lmer.14b, dat.14.vol, by = c("hour", "newADD"), all = FALSE)
 rm(dat.final.net1)
-summary.lmer.14b<-merge(summary.lmer.14b, dat.14.long, by = c("hour", "newADD"), all = FALSE)
 
-weekday.bin<-rep(1,length=dim(summary.lmer.14b)[1])
-weekday.bin[summary.lmer.14b$weekday==1| summary.lmer.14b$weekday==7]<-0
-summary.lmer.14b<-data.frame(cbind(summary.lmer.14b, weekday.bin))
-rm(weekday.bin)
-dim(summary.lmer.14b)
+summary.lmer.14b$weekday.bin <- 1
+summary.lmer.14b$weekday.bin[summary.lmer.14b$weekday==1 | summary.lmer.14b$weekday==7] <- 0
 
-#all is adjusted to kph
 summary.lmer.14b$speed85<-summary.lmer.14b$speed85*1.60934
 summary.lmer.14b$night.speed<-summary.lmer.14b$night.speed*1.60934
 
 
-#COUNT ADJUSTMENTS ARE CALCULATED HERE.  
-month<-rep(0, length = dim(summary.lmer.14b)[1])
-summary.lmer.14b<-data.frame(cbind(summary.lmer.14b, month))
-rm(month)
+# COUNT ADJUSTMENTS ARE CALCULATED HERE.  
+for (i in avail_months){
+  summary.lmer.14b$month <- i
+  if (i == 1){
+    count.adj <- 4 * predict(lm.11a, summary.lmer.14b)
+  }
+  else {
+    count.adj <- count.adj + 4 * predict(lm.11a, summary.lmer.14b)
+  }
+}
 
-summary.lmer.14b$month<-1
-count.adj.1<-4*predict(lm.11a, summary.lmer.14b)
-summary.lmer.14b$month<-2
-count.adj.2<-4*predict(lm.11a, summary.lmer.14b)
-summary.lmer.14b$month<-3
-count.adj.3<-4*predict(lm.11a, summary.lmer.14b)
-summary.lmer.14b$month<-4
-count.adj.4<-4*predict(lm.11a, summary.lmer.14b)
-summary.lmer.14b$month<-5
-count.adj.5<-4*predict(lm.11a, summary.lmer.14b)
-summary.lmer.14b$month<-6
-count.adj.6<-4*predict(lm.11a, summary.lmer.14b)
-summary.lmer.14b$month<-7
-count.adj.7<-4*predict(lm.11a, summary.lmer.14b)
-summary.lmer.14b$month<-8
-count.adj.8<-4*predict(lm.11a, summary.lmer.14b)
-summary.lmer.14b$month<-9
-count.adj.9<-4*predict(lm.11a, summary.lmer.14b)
-summary.lmer.14b$month<-10
-count.adj.10<-4*predict(lm.11a, summary.lmer.14b)
-summary.lmer.14b$month<-11
-count.adj.11<-4*predict(lm.11a, summary.lmer.14b)
-summary.lmer.14b$month<-12
-count.adj.12<-4*predict(lm.11a, summary.lmer.14b)
-count.adj<-(count.adj.1+ count.adj.2+ count.adj.3+ count.adj.4+
-               count.adj.5+ count.adj.6+ count.adj.7+ count.adj.8+
-               count.adj.9+ count.adj.10+ count.adj.11+ count.adj.12)/12
-hist(count.adj)
 summary.lmer.14b<-data.frame(cbind(summary.lmer.14b, count.adj))
-rm(count.adj, count.adj.1, count.adj.2, count.adj.3, count.adj.4,
-   count.adj.5, count.adj.6, count.adj.7, count.adj.8,
-   count.adj.9, count.adj.10, count.adj.11, count.adj.12)
 
-#PROCESSING SO THAT DELAY IS NEVER NEGATIVE
-speed1<-summary.lmer.14b$speed
-speed1<-pmin(speed1, summary.lmer.14b$speed85)
-summary.lmer.14b<-data.frame(cbind(summary.lmer.14b, speed1))
-rm(speed1)
 
-speed2<-summary.lmer.14b$speed
-speed2<-pmin(speed2, summary.lmer.14b$night.speed)
-summary.lmer.14b<-data.frame(cbind(summary.lmer.14b, speed2))
-rm(speed2)
+# PROCESSING SO THAT DELAY IS NEVER NEGATIVE
+summary.lmer.14b$speed1 <- pmin(summary.lmer.14b$speed, summary.lmer.14b$speed85)
+summary.lmer.14b$speed2 <- pmin(summary.lmer.14b$speed, summary.lmer.14b$night.speed)
 
-vkt.count.adj<-summary.lmer.14b$count.adj*(summary.lmer.14b$Length_m/1000)
-vkt.count.adj.speed<-vkt.count.adj/summary.lmer.14b$speed
-vkt.count.adj.speed1<-vkt.count.adj/summary.lmer.14b$speed1
-vkt.count.adj.speed2<-vkt.count.adj/summary.lmer.14b$speed2
-vkt.count.adj.speed85<-vkt.count.adj/summary.lmer.14b$speed85
-vkt.count.adj.night.speed<-vkt.count.adj/summary.lmer.14b$night.speed
-
-summary.lmer.14b<-data.frame(cbind(summary.lmer.14b, vkt.count.adj, vkt.count.adj.speed, vkt.count.adj.speed1, 
-                                   vkt.count.adj.speed2, vkt.count.adj.speed85,
-                                   vkt.count.adj.night.speed))
-rm(vkt.count.adj, vkt.count.adj.speed, vkt.count.adj.speed1, 
-   vkt.count.adj.speed2, vkt.count.adj.speed85,
-   vkt.count.adj.night.speed)
-rm(n, n.11, n.12, year)
-
+summary.lmer.14b$vkt.count.adj <- 
+  summary.lmer.14b$count.adj * (summary.lmer.14b$Length_m/1000)
+summary.lmer.14b$vkt.count.adj.speed <- 
+  summary.lmer.14b$vkt.count.adj/summary.lmer.14b$speed
+summary.lmer.14b$vkt.count.adj.speed1 <- 
+  summary.lmer.14b$vkt.count.adj/summary.lmer.14b$speed1
+summary.lmer.14b$vkt.count.adj.speed2 <- 
+  summary.lmer.14b$vkt.count.adj/summary.lmer.14b$speed2
+summary.lmer.14b$vkt.count.adj.speed85 <- 
+  summary.lmer.14b$vkt.count.adj/summary.lmer.14b$speed85
+summary.lmer.14b$vkt.count.adj.night.speed <- 
+  summary.lmer.14b$vkt.count.adj/summary.lmer.14b$night.speed
 
 #INTEGRATING MTO ADJUSTMENTS FOR 2011.  NEEDS TO BE DONE FOR OTHER YEARS AS WELL#####
 
-
 summary.lmer.14b$CorridorUID1 <- summary.lmer.14b$CorridorUID
-summary.lmer.14b$CorridorUID1[summary$lmer.14b$CorridorUID1 %in% mto_corridors]<-88
-summary.lmer.14b<-data.frame(cbind(summary.lmer.14b, CorridorUID1))
+summary.lmer.14b$CorridorUID1[summary.lmer.14b$CorridorUID1 %in% mto_corridors] <- 88
 
-summary.lmer.14b$count.adj.all <- 
-  summary.lmer.14b$count.adj
+summary.lmer.14b$count.adj.all <- summary.lmer.14b$count.adj
 summary.lmer.14b$count.adj.all[summary.lmer.14b$CorridorUID %in% mto_corridors] <- 
   predict(lm.b, summary.lmer.14b[summary.lmer.14b$CorridorUID %in% mto_corridors,])
 summary.lmer.14b$count.adj.all[summary.lmer.14b$CorridorUID %in% mto_corridors & summary.lmer.14b$count.adj.all < 1] <- 
@@ -685,10 +667,8 @@ summary.lmer.14b$count.adj.all[summary.lmer.14b$CorridorUID %in% mto_corridors &
 summary.lmer.14b$count.adj.all[summary.lmer.14b$CorridorUID %in% oth_corridors] <- 
   predict(lm.c, summary.lmer.14b[summary.lmer.14b$CorridorUID %in% oth_corridors,])
 
-
-
-dat.temp<-subset(summary.lmer.14b, subset = (weekday.bin == 1& Freeway ==1))
-out.lmer.14b.daily<-ddply ( dat.temp, 
+dat.temp <- subset(summary.lmer.14b, subset = (weekday.bin == 1& Freeway ==1))
+out.lmer.14b.daily <- ddply ( dat.temp, 
                             . (hour),
                             summarise,
                            vkt.k=sum(vkt.count.adj),
@@ -712,13 +692,15 @@ lmer.13e <- lmer( speed.wtd ~ 1
                   data = dat.13,
                   weights = weight.adj)
 
-lmer.14e < -lmer( speed.wtd ~ 1
+lmer.14e <- lmer( speed.wtd ~ 1
                   + (1|tmc:hour:weekday)
                   + (1|month), 
                   data = dat.14,
                   weights = weight.adj)
 
-
+#################################
+save.image("CITY_TREND_04.RData")
+#################################
 
 #######################################
 # CORRIDOR TRAVEL TIME INDEX SUMMARIES
@@ -728,71 +710,64 @@ lmer.14e < -lmer( speed.wtd ~ 1
 # 2014 #
 ########
 
-dat.temp <- subset(dat.14, 
-                   subset = weekday.bin == 1)
+dat.temp <- subset(dat.14, subset = weekday.bin == 1)
+
 dat.temp$C_UID[dat.temp$C_UID==29.1] <- 84.1
 dat.temp$C_UID[dat.temp$C_UID==29.2] <- 84.2
 dat.temp$C_UID[dat.temp$C_UID==29.3] <- 84.3
 dat.temp$C_UID[dat.temp$C_UID==29.4] <- 84.4
 corridor.direct.hourly.perf.14 <- tti_summary(dat.temp, c("hour", "C_UID"), 5, 12)
 
-
 dat.temp <- subset(dat.14, subset = weekday.bin ==1 )
 dat.temp$CorridorUID [dat.temp$CorridorUID==29] <- 84
 corridor.hourly.perf.14 <- tti_summary(dat.temp, c("hour", "CorridorUID"), 5, 12)
-
 
 dat.temp <- subset(dat.14, subset = weekday.bin == 1)
 dat.temp$Freeway[dat.temp$Freeway==2] <- 0
 system.hourly.perf.14 <- tti_summary(dat.temp, c("hour"), 5, 12)
 
-
 dat.temp <- subset(dat.14, subset = weekday.bin == 0)
 dat.temp$Freeway[dat.temp$Freeway==2] <- 0
 system.hourly.perf.14.weekend <- tti_summary(dat.temp, c("hour"), 2, 12)
-
 
 dat.temp <- subset(dat.14, subset = weekday.bin == 1)
 dat.temp$Freeway[dat.temp$Freeway==2] <- 0
 fre.art.hourly.perf.14 <- tti_summary(dat.temp, c("hour", "Freeway"), 5, 12)
 
-
 dat.temp <- subset(dat.14, subset = weekday.bin == 0)
 dat.temp$Freeway[dat.temp$Freeway==2] <- 0
 fre.art.hourly.perf.14.weekend <- tti_summary(dat.temp, c("hour", "Freeway"), 2, 12)
 
-
-########
-# 2013 #
-########
+################################################
+# HOURLY SPEEDS BY YEAR (SEPTEMBER TO NOVEMBER)
+################################################
 
 dat.temp <- subset(dat.13, subset = weekday.bin == 1 & (month>8&month<12))
 dat.temp$Freeway[dat.temp$Freeway==2] <- 0
 fre.art.hourly.perf.13.sep.nov <- tti_summary(dat.temp, c("hour", "Freeway"), 5, 3)
-
-
-########
-# 2011 #
-########
+fre.art.hourly.perf.13.sep.nov$year <- 2013
 
 dat.temp <- subset(dat.11, subset = weekday.bin == 1& (month>8&month<12))
 dat.temp$Freeway[dat.temp$Freeway==2] <- 0
 fre.art.hourly.perf.11.sep.nov <- tti_summary(dat.temp, c("hour", "Freeway"), 5, 3)
-
-
-########
-# 2014 #
-########
+fre.art.hourly.perf.11.sep.nov$year <- 2011
 
 dat.temp <- subset(dat.14, subset = weekday.bin == 1& (month>8&month<12))
 dat.temp$Freeway[dat.temp$Freeway==2] <- 0
 fre.art.hourly.perf.14.sep.nov <- tti_summary(dat.temp, c("hour", "Freeway"), 5, 3)
+fre.art.hourly.perf.14.sep.nov$year <- 2014
 
+fre.art.hourly.perf.all.sep.nov <- rbind(fre.art.hourly.perf.11.sep.nov,
+                                         fre.art.hourly.perf.13.sep.nov,
+                                         fre.art.hourly.perf.14.sep.nov)
 
-dat.temp <- subset(dat.14, subset = hour ==17)
+write.csv(fre.art.hourly.perf.all.sep.nov, file = "sep_nov.csv")
+
+# PM PEAK HOUR SPEEDS FOR DAYS OF THE WEEK
+dat.temp <- subset(dat.14, subset = hour == 17)
 dat.temp$Freeway[dat.temp$Freeway==2] <- 0
 fre.art.daily.perf.14.5pm <- tti_summary(dat.temp, c("weekday", "Freeway"), 1, 12)
-
+write.csv(fre.art.hourly.perf.all.sep.nov, file = "weekday5pm.csv")
 
 dat.temp <- (dat.14)
 dat.temp$Freeway[dat.temp$Freeway==2] <- 0
@@ -817,47 +792,60 @@ fre.art.seasonal.hourly.perf.14 <- tti_summary(dat.temp, c("month", "Freeway", "
 ##############################
 # DOWNTOWN TRENDS
 ##############################
-
 # ALL THE 1S ARE DOWNTOWN.  ALL ELSE (EVEN IF > 0) ARE NOT.
 
+# HOURLY SPEEDS - DOWNTOWN - BY YEAR
 dat.temp<-subset(dat.11, subset = weekday.bin == 1& (month>8&month<12) & Downtown_P == 1 & Freeway !=1)
 dat.temp$Freeway[dat.temp$Freeway==2] <- 0
 downtown.hourly.perf.11.sep.nov <- tti_summary(dat.temp, c("hour"), 5, 3)
-
+downtown.hourly.perf.11.sep.nov$year <- 2011
 
 dat.temp<-subset(dat.13, subset = weekday.bin == 1& (month>8&month<12) & Downtown_P == 1 & Freeway !=1)
 dat.temp$Freeway[dat.temp$Freeway==2]<-0
 downtown.hourly.perf.13.sep.nov <- tti_summary(dat.temp, c("hour"), 5, 3)
-
+downtown.hourly.perf.13.sep.nov$year <- 2013
 
 dat.temp<-subset(dat.14, subset = weekday.bin == 1& (month>8&month<12) & Downtown_P == 1 & Freeway !=1)
 dat.temp$Freeway[dat.temp$Freeway==2] <- 0
 downtown.hourly.perf.14.sep.nov <- tti_summary(dat.temp, c("hour"), 5, 3)
+downtown.hourly.perf.14.sep.nov$year <- 2014
+
+downtown.hourly.perf.all.sep.nov <- rbind(downtown.hourly.perf.11.sep.nov,
+                                          downtown.hourly.perf.13.sep.nov,
+                                          downtown.hourly.perf.14.sep.nov)
+write.csv(downtown.hourly.perf.all.sep.nov, file = "sep_nov_downtown.csv")
 
 
+# DAILY DOWNTOWN SPEEDS - DAILY AVERAGE vs. 5PM
 dat.temp<-subset(dat.14, subset = Downtown_P == 1 & Freeway !=1)
 dat.temp$Freeway[dat.temp$Freeway==2]<-0
 downtown.weekday.perf.14 <- tti_summary(dat.temp, c("weekday"), 1, 12)
-
+downtown.weekday.perf.14$time <- "DAILY"
 
 dat.temp<-subset(dat.14, subset = Downtown_P == 1 & Freeway !=1 & hour ==17)
 dat.temp$Freeway[dat.temp$Freeway==2]<-0
 downtown.weekday.perf.14.5pm <- tti_summary(dat.temp, c("weekday"), 1, 12)
+downtown.weekday.perf.14.5pm$time <- "5PM"
+
+ggplot() +
+  geom_bar(stat = "identity", data = downtown.weekday.perf.14, 
+           aes(fill = "blue",x = weekday, y = speed.count.adj.all*1.60934)) +
+  geom_bar(stat = "identity", data = downtown.weekday.perf.14.5pm, 
+           aes(fill = "red",x = weekday, y = speed.count.adj.all*1.60934))
 
 
+  
+#DOWNTOWN MEAN SPEEDS - TYPICAL WEEKDAY vs. WEEKEND
 dat.temp<-subset(dat.14, subset = Downtown_P == 1 & Freeway !=1)
 dat.temp$Freeway[dat.temp$Freeway==2]<-0
 downtown.hourly.weekday.bin.perf.14 <- tti_summary(dat.temp, c("weekday.bin","hour"), 1, 12)
 
-
-dat.temp<-subset(dat.14, subset = Downtown_P == 1 & Freeway !=1 & weekday.bin == 1)
-dat.temp$Freeway[dat.temp$Freeway==2]<-0
-downtown.corridor.hourly.perf.14 <- tti_summary(dat.temp, c("CorridorUID","hour"), 5, 12)
-
-
-dat.temp<-subset(dat.14, subset = Downtown_P == 1 & Freeway !=1 & weekday.bin == 1)
-dat.temp$Freeway[dat.temp$Freeway==2]<-0
-downtown.corridor.perf.14 <- tti_summary(dat.temp, c("CorridorUID"), 5, 12)
+ggplot(data = downtown.hourly.weekday.bin.perf.14,
+       aes(x = hour, y = speed.count.adj.all*1.60934, 
+           group = as.factor(weekday.bin), colour = as.factor(weekday.bin))) +
+  geom_line() +
+  scale_x_continuous(limits = c(5,21)) +
+  scale_y_continuous(limits = c(10,35))
 
 
 ##############################
