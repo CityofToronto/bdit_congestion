@@ -4,13 +4,13 @@ Inputs: aggregation level, from month, to month
 Processes aggregate Inrix data into Travel Time Index and Buffer Time Index over the specified period and using the specified aggregation level
 */
 
-CREATE OR REPLACE FUNCTION rdumas.process_congestion_metrics(agg_lvl varchar(9), from_mon DATE, to_mon DATE)
+CREATE OR REPLACE FUNCTION congestion.process_metrics(agg_lvl varchar(9), from_mon DATE, to_mon DATE)
 RETURNS int
 AS $$
 BEGIN 
 	/*Value checks on inputs*/
 	
-	 IF agg_lvl NOT IN (SELECT agg_level FROM rdumas.aggregation_levels) THEN
+	 IF agg_lvl NOT IN (SELECT agg_level FROM congestion.aggregation_levels) THEN
 		RAISE EXCEPTION 'Incorrect agg_lvl'; 
 	 END IF;
 	 
@@ -24,7 +24,7 @@ BEGIN
 	/*END Value checks on inputs*/
 
 	 /*Actual aggregation function*/
-	 INSERT INTO rdumas.congestion_metrics 
+	 INSERT INTO congestion.metrics 
 	 SELECT tmc, 
 	 timerange(	time_15_continuous/10*interval '1 hour' + '00:00'::TIME,
 			time_15_continuous/10*interval '1 hour' + CASE WHEN time_15_continuous >=230 THEN '00:59:59.99'::TIME ELSE '01:00'::TIME END
@@ -36,7 +36,7 @@ BEGIN
 	 
 	 FROM inrix.agg_extract_hour AEH
 	 INNER JOIN (SELECT * FROM gis.inrix_tmc_tor WHERE speed_overnight > 0) ITT USING (tmc)
-	 CROSS JOIN rdumas.aggregation_levels
+	 CROSS JOIN congestion.aggregation_levels
 	 WHERE agg_level = agg_lvl 
 		AND dt >= from_mon AND dt < to_mon 
 		AND extract('isodow' FROM dt) < 6 --weekdays
@@ -46,13 +46,13 @@ BEGIN
  END;
 $$LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION rdumas.process_congestion_metrics(agg_lvl varchar(9), from_mon DATE, to_mon DATE, timeperiod timerange)
+CREATE OR REPLACE FUNCTION congestion.process_metrics(agg_lvl varchar(9), from_mon DATE, to_mon DATE, timeperiod timerange)
 RETURNS int
 AS $$
 BEGIN 
 	/*Value checks on inputs*/
 	
-	 IF agg_lvl NOT IN (SELECT agg_level FROM rdumas.aggregation_levels) THEN
+	 IF agg_lvl NOT IN (SELECT agg_level FROM congestion.aggregation_levels) THEN
 		RAISE EXCEPTION 'Incorrect agg_lvl'; 
 	 END IF;
 	 
@@ -66,7 +66,7 @@ BEGIN
 	/*END Value checks on inputs*/
 
 	 /*Actual aggregation function*/
-	 INSERT INTO rdumas.congestion_metrics 
+	 INSERT INTO congestion.metrics 
 	 SELECT tmc, 
 	 timeperiod, --Transform time15 into hour range
 	 agg_id, 
@@ -76,7 +76,7 @@ BEGIN
 	 
 	 FROM inrix.agg_extract_hour AEH
 	 INNER JOIN (SELECT * FROM gis.inrix_tmc_tor WHERE speed_overnight > 0) ITT USING (tmc)
-	 CROSS JOIN rdumas.aggregation_levels
+	 CROSS JOIN congestion.aggregation_levels
 	 WHERE agg_level = agg_lvl 
 		AND dt >= from_mon AND dt < to_mon 
 		AND extract('isodow' FROM dt) < 6 --weekdays
