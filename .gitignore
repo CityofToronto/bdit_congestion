@@ -133,3 +133,4 @@ McMaster Congestion Reporting/out/*
 McMaster Congestion Reporting/analysis/*
 McMaster Congestion Reporting/.Rhistory
 *.RData
+python/congestion_mapping/db.cfg

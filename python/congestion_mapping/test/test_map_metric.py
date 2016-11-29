@@ -1,5 +1,15 @@
 import unittest
-from map_metric import _get_timerange
+from argparse import ArgumentError
+from map_metric import _get_timerange, parse_args
+''' Testing file
+    Run with `python -m unittest in the root folder'''
+
+class ErrorRaisingArgumentParser(argparse.ArgumentParser):
+    '''From http://stackoverflow.com/a/39029904/4047679'''
+    def error(self, message):
+        #print(message)
+        raise ValueError(message)  # reraise an error
+
 
 class TimeRangeTestCase(unittest.TestCase):
     '''Tests for timerange creation'''
@@ -21,5 +31,26 @@ class TimeRangeTestCase(unittest.TestCase):
             _get_timerange(8,8)
         self.assertEqual('2nd time parameter 8 must be at least 1 hour after first parameter 8', str(cm.exception))
         
+class ArgParseTestCase(unittest.TestCase):
+    '''Tests for argument parsing'''
+
+    def test_years_y_single(self):
+        '''Test if a single pair of years produces the right values'''
+        valid_result = [['201407','201506']]
+        args = parse_args('b year -p 8 -r 201407 201506'.split())
+        self.assertEqual(valid_result, args.range)
+        
+    def test_years_y_multiple(self):
+        '''Test if a multiple pair of years produces the right values'''
+        valid_result = [['201203', '201301'],['201207', '201209']]
+        args = parse_args('b year  -p 8 -r 201203 201301 -r 201207 201209'.split())
+        self.assertEqual(valid_result, args.range)
+        
+    def test_years_y_only_one(self):
+        '''Test if a single pair of years produces the right values'''
+        with self.assertRaises(ArgumentError) as cm:
+            args = parse_args('b year -p 8 -r 201207'.split())
+        self.assertEqual('argument -r/--range: expected 2 arguments', str(cm.exception))
+
 if __name__ == '__main__':
     unittest.main()
