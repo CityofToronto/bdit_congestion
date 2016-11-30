@@ -37,7 +37,7 @@ optional arguments:
                         Table containing metrics congestion.metrics
 """
 
-#import stuff
+#TODO import stuff
 import argparse
 import json
 import sys
@@ -109,6 +109,75 @@ def parse_args(args):
         PARSER.error('--timeperiod takes one or two arguments')
     return parsed_args
 
+def get_yyyymm(yyyy, mm):
+    '''Combine integer yyyy and mm into a string yyyymm.'''
+    if mm < 10:
+        return str(yyyy)+'0'+str(mm)
+    else:
+        return str(yyyy)+str(mm)
+
+def _validate_yyyymm_range(yyyymmrange):
+    '''Validate the two yyyymm command line arguments provided
+
+    Args:
+        yyyymmrange: List containing a start and end year-month in yyyymm format
+
+    Returns:
+        A dictionary with the processed range like {'yyyy':range(mm1,mm2+1)}
+
+    Raises:
+        ValueError: If the values entered are incorrect
+    '''
+
+    if len(yyyymmrange) != 2:
+        raise ValueError('{yyyymmrange} should contain two YYYYMM arguments'
+                         .format(yyyymmrange=yyyymmrange))
+
+    regex_yyyymm = re.compile(r'20\d\d(0[1-9]|1[0-2])')
+    yyyy, mm = [], []
+    years = {}
+
+    for yyyymm in yyyymmrange:
+        if regex_yyyymm.fullmatch(yyyymm):
+            yyyy.append(int(yyyymm[:4]))
+            mm.append(int(yyyymm[-2:]))
+        else:
+            raise ValueError('{yyyymm} is not a valid year-month value of format YYYYMM'
+                             .format(yyyymm=yyyymm))
+
+    if yyyy[0] > yyyy[1] or (yyyy[0] == yyyy[1] and mm[0] > mm[1]):
+        raise ValueError('Start date {yyyymm1} after end date {yyyymm2}'
+                         .format(yyyymm1=yyyymmrange[0], yyyymm2=yyyymmrange[1]))
+
+    if yyyy[0] == yyyy[1]:
+        years[yyyy[0]] = range(mm[0], mm[1]+1)
+    else:
+        for year in range(yyyy[0], yyyy[1]+1):
+            if year == yyyy[0]:
+                years[year] = range(mm[0], 13)
+            elif year == yyyy[1]:
+                years[year] = range(1, mm[1]+1)
+            else:
+                years[year] = range(1, 13)
+
+    return years
+
+def _validate_multiple_yyyymm_range(years_list):
+    '''Takes a list of pairs of yearmonth strings like ['YYYYMM','YYYYMM'] and returns
+    a dictionary of years[YYYY] = range(month1, month2 + 1)'''
+    years = {}
+    if len(years_list) == 1:
+        years = _validate_yyyymm_range(years_list[0])
+    else:
+        for yearrange in years_list:
+            years_to_add = _validate_yyyymm_range(yearrange)
+            for year_to_add in years_to_add:
+                if year_to_add not in years:
+                    years[year_to_add] = years_to_add[year_to_add]
+                else:
+                    years[year_to_add] = set.union(set(years_to_add[year_to_add]),
+                                                   set(years[year_to_add]))
+    return years
 
 def _get_timerange(time1, time2):
     '''Validate provided times and create a timerange string to be inserted into PostgreSQL
@@ -180,3 +249,14 @@ if __name__ == '__main__':
     CONFIG = configparser.ConfigParser()
     CONFIG.read(ARGS.dbsetting)
     dbset = CONFIG['DBSETTINGS']
+    
+    try:
+        YEARS = _validate_multiple_yyyymm_range(ARGS.years)
+    except ValueError as err:
+        LOGGER.critical(str(err))
+        sys.exit(2)
+        
+    for year in YEARS:
+        for month in YEARS[year]:
+            yyyymm = get_yyyymm(year, month)
+            #TODO Processing stuff
