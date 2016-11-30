@@ -1,4 +1,42 @@
+#map_metric.py
 #! python3
+"""Automate printings maps of congestion metrics using PyQGIS
+
+This command line utility can automate cycling over multiple years, hours of
+the day, and metrics to load layers from the PostgreSQL DB, add them to a 
+template map and then print them to a png. 
+
+usage: map_metric.py [-h] -r YYYYMM YYYYMM
+                     (-p TIMEPERIOD [TIMEPERIOD ...] | -i HOURS_ITERATE HOURS_IT
+ERATE)
+                     [-d DBSETTING] [-t TABLENAME]
+                     {b,t} [{b,t} ...] {year,quarter,month}
+
+Produce maps of congestion metrics (tti, bti) for different aggregation
+periods, timeperiods, and aggregation levels
+
+positional arguments:
+  {b,t}                 Map either Buffer Time Index, Travel Time Index or
+                        both e.g. b, t, or 'b t'
+  {year,quarter,month}  Aggregation level to be used
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -r YYYYMM YYYYMM, --range YYYYMM YYYYMM
+                        Range of months (YYYYMM) to operate overfrom startdate
+                        to enddate. Accepts multiple pairs
+  -p TIMEPERIOD [TIMEPERIOD ...], --timeperiod TIMEPERIOD [TIMEPERIOD ...]
+                        Timeperiod of aggregation, use 1 arg for 1 hour or 2
+                        args for a range
+  -i HOURS_ITERATE HOURS_ITERATE, --hours_iterate HOURS_ITERATE HOURS_ITERATE
+                        Hours to iterate over
+  -d DBSETTING, --dbsetting DBSETTING
+                        Filename with connection settings to the
+                        database(default: opens default.cfg)
+  -t TABLENAME, --tablename TABLENAME
+                        Table containing metrics congestion.metrics
+"""
+
 #import stuff
 import argparse
 import json
@@ -27,7 +65,14 @@ SQLS = {'month':"",
         'quarter':''}
 
 def parse_args(args):
-    '''Parser for the command line arguments'''
+    '''Parser for the command line arguments
+    
+    Args:
+        sys.argv[1]: command line arguments
+        
+    Returns:
+        dictionary of parsed arguments
+    '''
     PARSER = argparse.ArgumentParser(description='Produce maps of congestion metrics (tti, bti) for '
                                                  'different aggregation periods, timeperiods, and '
                                                  'aggregation levels')
@@ -65,7 +110,15 @@ def parse_args(args):
 
 
 def _get_timerange(time1, time2):
-    '''Validate provided times and create a timerange string to be inserted into PostgreSQL'''
+    '''Validate provided times and create a timerange string to be inserted into PostgreSQL
+    
+    Args:
+        time1: Integer first hour
+        time2: Integer second hour
+        
+    Returns:
+        String representation creating a PostgreSQL timerange object
+    '''
     if time1 == time2:
         raise ValueError('2nd time parameter {time2} must be at least 1 hour after first parameter {time1}'.format(time1=time1, time2=time2))
         
@@ -84,14 +137,31 @@ def _get_timerange(time1, time2):
                                                                                   endtime=endtime.isoformat())
 
 
-def new_uri(dbset):
-    '''Create a new URI based on the database settings and return it'''
+def _new_uri(dbset):
+    '''Create a new URI based on the database settings and return it
+    
+    Args:
+        dbset: dictionary of database connection settings
+        
+    Returns:
+        PyQGIS uri object'''
     uri = QgsDataSourceURI()
     uri.setConnection(dbset['host'], "5432", dbset['database'], dbset['user'], dbset['password'])
     return uri
 
 def _get_agg_layer(uri, agg_level = None, agg_period = None, timeperiod = None, layername = None):
-
+    '''Create a QgsVectorLayer from a connection and specified parameters
+    
+    Args:
+        uri: PyQGIS uri object
+        agg_level: string representing aggregation level, key to SQLS dict
+        agg_period: the starting aggregation date for the period as a string
+            digestible by PostgreSQL into a DATE
+        timeperiod: string representing a PostgreSQL timerange
+        layername: string name to give the layer
+        
+    Returns:
+        QgsVectorLayer from the specified sql query with provided layername'''
     if agg_level not in SQLS:
         raise ValueError('Aggregation level: {agg_level} not implemented'.format(agg_level=agg_level))
         
