@@ -78,9 +78,11 @@ def parse_args(args):
                                                  'aggregation levels')
 
     PARSER.add_argument('Metric', choices=['b', 't'], nargs='+',
-                        help="Map either Buffer Time Index, Travel Time Index or both e.g. b, t, or 'b t'")
+                        help="Map either Buffer Time Index, Travel"
+                        "Time Index or both e.g. b, t, or 'b t'."
+                        "Make sure to space arguments")
 
-    PARSER.add_argument("Aggregation_level", choices=['year', 'quarter', 'month'],
+    PARSER.add_argument("Aggregation", choices=['year', 'quarter', 'month'],
                         help="Aggregation level to be used")
 
     PARSER.add_argument("-r", "--range", nargs=2, action='append',
@@ -102,8 +104,7 @@ def parse_args(args):
                         default='congestion.metrics',
                         help="Table containing metrics %(default)s")
     parsed_args = PARSER.parse_args(args)
-    #    if not (parsed_args.bti or parsed_args.tti):
-    #        PARSER.error('No metric specified, add either --bti or --tti')
+
     if parsed_args.timeperiod and len(parsed_args.timeperiod) > 2:
         PARSER.error('--timeperiod takes one or two arguments')
     return parsed_args
@@ -134,7 +135,7 @@ def _get_timerange(time1, time2):
         raise ValueError('start time {starttime} after end time {endtime}'.format(starttime=starttime, endtime=endtime))
     
     return 'timerange(\'{starttime}\'::time, \'{endtime}\'::time)'.format(starttime=starttime.isoformat(),
-                                                                                  endtime=endtime.isoformat())
+                                                                          endtime=endtime.isoformat())
 
 
 def _new_uri(dbset):
