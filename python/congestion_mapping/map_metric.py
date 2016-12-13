@@ -119,8 +119,8 @@ if __name__ == '__main__':
     #TODO load map template
     URI = _new_uri(dbset)
 
-    for metric in ARGS.metric:
-        
+    for m in ARGS.metric:
+        metric = METRICS[m]
         for year in YEARS:
             for month in YEARS[year]:
                 yyyymmdd = get_yyyymmdd(year, month)
@@ -135,7 +135,7 @@ if __name__ == '__main__':
                     layer = _get_agg_layer(URI, agg_level = ARGS.agg_level,
                                    agg_period = yyyymmdd,
                                    timeperiod = timerange,
-                                    metric = 
+                                   metric = metric,
                                    layername = layername)
             
             #TODO Processing stuff

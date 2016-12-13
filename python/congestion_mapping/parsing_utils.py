@@ -61,6 +61,8 @@ def parse_args(args, prog = None, usage = None):
 
     if parsed_args.timeperiod and len(parsed_args.timeperiod) > 2:
         PARSER.error('--timeperiod takes one or two arguments')
+    if len(parsed_args.Metric) > 2:
+        PARSER.error('Extra input of metrics unsupported')
     return parsed_args
 
 def get_yyyymmdd(yyyy, mm, **kwargs):
@@ -93,9 +95,9 @@ def _validate_yyyymm_range(yyyymmrange, agg_level):
         ValueError: If the values entered are incorrect
     '''
 
-    if agg_level not in SQLS:
-        raise ValueError('Aggregation level: {agg_level} not implemented'.format(agg_level=agg_level))
-    elif agg_level == 'month':
+    #if agg_level not in SQLS:
+    #    raise ValueError('Aggregation level: {agg_level} not implemented'.format(agg_level=agg_level))
+    if agg_level == 'month':
         step = 1
     elif agg_level == 'quarter':
         step = 3

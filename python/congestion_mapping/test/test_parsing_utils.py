@@ -144,6 +144,7 @@ class ArgParseTestCase(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         self.testing_params = {'prog':'TESTING', 'usage':''}
+        self.stderr_msg = 'usage: \nTESTING: error: {errmsg}\n'
         super(ArgParseTestCase, self).__init__(*args, **kwargs)
     
     def test_years_y_single(self):
@@ -153,10 +154,18 @@ class ArgParseTestCase(unittest.TestCase):
         self.assertEqual(valid_result, args.range)
 
     def test_metric_both(self):
-        '''Test if a single pair of years produces the right values'''
+        '''Test if inputting both metrics produces right metric arguments'''
         valid_result = ['b','t']
         args = parse_args('b t year -p 8 -r 201407 201506'.split())
         self.assertEqual(valid_result, args.Metric)
+
+    def test_metric_three(self):
+        '''Test if a too many metrics throws an error'''
+        with self.assertRaises(SystemExit) as cm, capture_sys_output() as (stdout, stderr):
+            args = parse_args('b t t year -p 8 -r 201407 201506'.split(), **self.testing_params)
+        self.assertEqual(2, cm.exception.code)
+        errmsg = 'Extra input of metrics unsupported'
+        self.assertEqual(self.stderr_msg.format(errmsg=errmsg), stderr.getvalue())
 
     def test_aggregation_level(self):
         '''Test if aggregation level years produces the right value'''
