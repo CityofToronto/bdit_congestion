@@ -65,6 +65,8 @@ SQLS = {#'month':"",
 #        'quarter':''
 }
 
+METRICS = {'b':'bti',
+           't':'tti'}
 
 def _new_uri(dbset):
     '''Create a new URI based on the database settings and return it
@@ -78,7 +80,7 @@ def _new_uri(dbset):
     uri.setConnection(dbset['host'], "5432", dbset['database'], dbset['user'], dbset['password'])
     return uri
 
-def _get_agg_layer(uri, agg_level = None, agg_period = None, timeperiod = None, layername = None):
+def _get_agg_layer(uri, agg_level = None, agg_period = None, timeperiod = None, layername = None, metric = None):
     '''Create a QgsVectorLayer from a connection and specified parameters
     
     Args:
@@ -95,7 +97,7 @@ def _get_agg_layer(uri, agg_level = None, agg_period = None, timeperiod = None, 
         raise ValueError('Aggregation level: {agg_level} not implemented'.format(agg_level=agg_level))
         
     sql = SQLS[agg_level]
-    sql = sql.format(timeperiod = timeperiod, agg_period = agg_period)
+    sql = sql.format(timeperiod = timeperiod, agg_period = agg_period, metric = metric)
     uri.setDataSource("", sql, "geom", "", "gid")
     return QgsVectorLayer(uri.uri(False), layername, 'postgres')
 
@@ -117,20 +119,23 @@ if __name__ == '__main__':
     #TODO load map template
     URI = _new_uri(dbset)
 
-    for year in YEARS:
-        for month in YEARS[year]:
-            yyyymmdd = get_yyyymmdd(year, month)
-            if ARGS.hours_iterate:
-                hour_iterator = range(ARGS.hours_iterate[0],ARGS.hours_iterate[1]+1)
-            else:
-                hour_iterator = range(ARGS.timeperiod[0],ARGS.timeperiod[0]+1)
-            for hour1 in hour_iterator:
-                hour2 = hour1 + 1 if ARGS.hours_iterate else ARGS.timeperiod[1] 
-                timerange = _get_timerange(hour1, hour2)
-                layername = year + month + 'h' + hour1 + ARGS.agg_level
-                layer = _get_agg_layer(URI, agg_level = ARGS.agg_level,
-                               agg_period = yyyymmdd,
-                               timeperiod = timerange,
-                               layername=layername)
+    for metric in ARGS.metric:
+        
+        for year in YEARS:
+            for month in YEARS[year]:
+                yyyymmdd = get_yyyymmdd(year, month)
+                if ARGS.hours_iterate:
+                    hour_iterator = range(ARGS.hours_iterate[0],ARGS.hours_iterate[1]+1)
+                else:
+                    hour_iterator = range(ARGS.timeperiod[0],ARGS.timeperiod[0]+1)
+                for hour1 in hour_iterator:
+                    hour2 = hour1 + 1 if ARGS.hours_iterate else ARGS.timeperiod[1] 
+                    timerange = _get_timerange(hour1, hour2)
+                    layername = year + month + 'h' + hour1 + ARGS.agg_level
+                    layer = _get_agg_layer(URI, agg_level = ARGS.agg_level,
+                                   agg_period = yyyymmdd,
+                                   timeperiod = timerange,
+                                    metric = 
+                                   layername = layername)
             
             #TODO Processing stuff
