@@ -100,6 +100,19 @@ def _get_agg_layer(uri, agg_level=None, agg_period=None, timeperiod=None,
     uri.setDataSource("", sql, "geom", "", "gid")
     return QgsVectorLayer(uri.uri(False), layername, 'postgres')
 
+def loadPrintComposerTemplate(template):
+    '''Load a print composer template from provided filename argument'''
+
+    
+    myComposition = QgsComposition(qgis.utils.iface.mapCanvas().mapRenderer())
+    # Load template from filename
+    with open(template, 'r') as templateFile:
+        myTemplateContent = templateFile.read()
+    
+    myDocument = QDomDocument()
+    myDocument.setContent(myTemplateContent)
+    myComposition.loadFromTemplate(myDocument)
+
 if __name__ == '__main__':
     #Configure logging
     FORMAT = '%(asctime)-15s %(message)s'
@@ -149,12 +162,6 @@ elif __name__ == 'console_testing':
     import ConfigParser
     import StringIO
     from datetime import time
-    s_config = '''
-    [DBSETTINGS]
-    database=bigdata
-    host=137.15.155.38
-    user=rdumas
-    password=R6izSftwscUpCAuR11zP'''
     buf = StringIO.StringIO(s_config)
     config = ConfigParser.ConfigParser()
     config.readfp(buf)
@@ -171,3 +178,7 @@ elif __name__ == 'console_testing':
                            metric=metric,
                            layername=layername)
     QgsMapLayerRegistry.instance().addMapLayer(layer)
+
+    template = "K:\\Big Data Group\\Data\\GIS\\Congestion_Reporting\\top_50_template.qpt"
+    
+    loadPrintComposerTemplate(template)
