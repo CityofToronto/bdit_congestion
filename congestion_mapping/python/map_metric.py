@@ -37,90 +37,21 @@ optional arguments:
                         Table containing metrics congestion.metrics
 """
 
-#TODO import stuff
+
 import sys
 import logging
 import calendar
-#qgis imports
-QGIS_CONSOLE = True #For testing in console
-if QGIS_CONSOLE:
+if __name__ == '__console__':  #PyQGIS console
     from qgis.utils import iface
+    repo_path = r"C:\Users\rdumas\Documents\GitHub\bdit_congestion\congestion_mapping\python"
+    sys.path.append(repo_path)
+    from parsing_utils import validate_multiple_yyyymm_range
 else:
     from qgis.core import *
-    from parsing_utils import parse_args, get_timerange, format_fromto_hr
+    from parsing_utils import parse_args
 
-from qgis.PyQt.QtXml import QDomDocument
-from qgis.gui import QgsMapCanvasLayer
-
-SQLS = {'year':"""(
-SELECT row_number() OVER (PARTITION BY metrics.agg_period ORDER BY metrics.{metric} DESC) AS "Rank",
-    tmc_from_to_lookup.street_name AS "Street",
-    gis.twochar_direction(inrix_tmc_tor.direction) AS "Dir",
-    tmc_from_to_lookup.from_to AS "From - To",
-    to_char(metrics.{metric}, '0D99'::text) AS "{metric_name}",
-    inrix_tmc_tor.geom
-FROM congestion.metrics
-JOIN congestion.aggregation_levels USING (agg_id)
-JOIN gis.inrix_tmc_tor USING (tmc)
-JOIN gis.tmc_from_to_lookup USING (tmc)
-WHERE inrix_tmc_tor.sum_miles > 0.124274 AND aggregation_levels.agg_level = 'year'
-AND metrics.timeperiod = {timeperiod} AND metrics.agg_period = {agg_period}::DATE
-ORDER BY metrics.{metric} DESC LIMIT 50)"""#,
-    #'quarter':''''''
-    #'month':''''''
-}
-
-METRICS = {'b':{'sql_acronym':'bti',
-                'metric_name':'Buffer Time Index',
-                'metric_attr':'Least Reliable',
-                'stat_description':'Buffer Time Index = (95th percentile Time - Median Time)/(Median Time)'
-               },
-           't':{'sql_acronym':'tti',
-                'metric_name': 'Travel Time Index',
-                'metric_attr':'Most Congested',
-                'stat_description':'Travel Time Index = Average Travel Time / Free Flow Travel Time'
-               }
-          }
-
-COMPOSER_LABELS = {'map_title': '{agg_period} Top 50 {metric_attr} Road Segments',
-                   'time_period': '{period_name} ({from_to_hours})',
-                   'stat_description': '{stat_description}'}
-BACKGROUND_LAYERNAMES = [u'CENTRELINE_WGS84', u'to']
-
-def _new_uri(dbset):
-    '''Create a new URI based on the database settings and return it
-
-    Args:
-        dbset: dictionary of database connection settings
-    
-    Returns:
-        PyQGIS uri object'''
-    uri = QgsDataSourceURI()
-    uri.setConnection(dbset['host'], "5432", dbset['database'], dbset['user'], dbset['password'])
-    return uri
-
-def _get_agg_layer(uri, agg_level=None, agg_period=None, timeperiod=None,
-                   layername=None, metric=None, metric_name= None):
-    '''Create a QgsVectorLayer from a connection and specified parameters
-
-    Args:
-        uri: PyQGIS uri object
-        agg_level: string representing aggregation level, key to SQLS dict
-        agg_period: the starting aggregation date for the period as a string
-            digestible by PostgreSQL into a DATE
-        timeperiod: string representing a PostgreSQL timerange
-        layername: string name to give the layer
-
-    Returns:
-        QgsVectorLayer from the specified sql query with provided layername'''
-    if agg_level not in SQLS:
-        raise ValueError('Aggregation level: {agg_level} not implemented'.format(
-            agg_level=agg_level))
-    
-    sql = SQLS[agg_level]
-    sql = sql.format(timeperiod=timeperiod, agg_period=agg_period, metric=metric, metric_name=metric_name)
-    uri.setDataSource("", sql, "geom", "", "Rank")
-    return QgsVectorLayer(uri.uri(False), layername, 'postgres')
+from parsing_utils import get_timerange, format_fromto_hr, get_yyyymmdd
+from congestion_mapper import CongestionMapper
 
 def _get_agg_period(agg_level, year, month):
     '''Create a text representation of the aggregation period
@@ -152,70 +83,6 @@ def _get_agg_period(agg_level, year, month):
         raise NotImplementedError('No support for {agg_level}'.format({'agg_level':agg_level}))
     return agg_period
 
-
-def update_labels(composition, labels_dict = COMPOSER_LABELS, labels_update = None):
-    '''Change the labels in the QgsComposition using a dictionary of update values
-    
-    Iterates over the keys (label ids) and values (strings to update) of the labels_dict
-    Finds the corresponding element of the composition, and updates it based on keys and 
-    values provided in labels_update.
-    
-    Args:
-        composition: the QgsComposition
-        labels_dict: dictionary of labels to change of form 
-            {'label_id':'label_text to {update_section}'}
-        labels_update: dictionary of values to update labels with
-            format: {'update_section':'update_value'}
-    Returns:
-        None'''
-    for label_id, label_text in labels_dict.items():
-        composition.getComposerItemById(label_id).setText(label_text.format(**labels_update))
-    
-
-def load_print_composer(template, console=True):
-    '''Load a print composer template from provided filename argument
-    
-    Args:
-        template: readable .qpt template filename
-        console: boolean if method is used in QGIS console
-        
-    Returns:
-        myComposition: a QgsComposerView loaded from the provided template
-        --mapSettings: a QgsMapSettings object associated with myComposition'''
-    # Load template from filename
-    myDocument = QDomDocument()
-    with open(template, 'r') as templateFile:
-        myTemplateContent = templateFile.read()
-        myDocument.setContent(myTemplateContent)
-    composerView = None
-    
-    if console:
-        composerView = iface.createNewComposer()
-        composerView.composition().loadFromTemplate(myDocument)
-        myComposition = composerView.composition()
-        mapSettings = myComposition.mapSettings()
-    else:
-        raise NotImplementedError('More work needs to be done for standalone')
-        canvas = QgsMapCanvas()
-        # Load our project
-        QgsProject.instance().read(QFileInfo(project_path))
-        bridge = QgsLayerTreeMapCanvasBridge(
-            QgsProject.instance().layerTreeRoot(), canvas)
-        bridge.setCanvasLayers()
-        mapSettings = QgsMapSettings()
-        myComposition = QgsComposition(mapSettings)
-        myComposition.loadFromTemplate(myDocument)
-    return {'QgsComposition': myComposition,
-            'QgsMapSettings': mapSettings,
-            'QgsComposerView': composerView}
-
-def get_background_layers(mapregistry, layernamelist):
-    '''Return background layers'''
-    
-    layers = [map_registry.mapLayersByName(name)[0] for name in layernamelist]
-    layerslist = [QgsMapCanvasLayer(layer) for layer in layers]
-    return layerslist
-
 if __name__ == '__main__':
     #Configure logging
     FORMAT = '%(asctime)-15s %(message)s'
@@ -228,104 +95,121 @@ if __name__ == '__main__':
     CONFIG = configparser.ConfigParser()
     CONFIG.read(ARGS.dbsetting)
     dbset = CONFIG['DBSETTINGS']
-    
-    #TODO load map template
-    URI = _new_uri(dbset)
+
     #TODO stylepath
     stylepath = "K:\\Big Data Group\\Data\\GIS\\Congestion_Reporting\\top50style.qml"
     template = 'K:\\Big Data Group\\Data\\GIS\\Congestion_Reporting\\top_50_template.qpt'
-    composerDict = loadPrintComposerTemplate(template, console=False)
-    composition = composerDict['QgsComposition']
-    map_registry = QgsMapLayerRegistry.instance()
-    background_layers = get_background_layers(map_registry, BACKGROUND_LAYERNAMES)
     
+    gui_flag = True
+    app = QgsApplication([], gui_flag)
+    app.initQgis()
+    
+    mapper = CongestionMapper(LOGGER, dbset, stylepath, templatepath, projectfile, ARGS.Aggregation)
+        
     for m in ARGS.metric:
-        metric = METRICS[m]
+        mapper.set_metric(m)
         for year in args.years:
+
             for month in YEARS[year]:
                 yyyymmdd = get_yyyymmdd(year, month)
                 if ARGS.hours_iterate:
                     hour_iterator = range(ARGS.hours_iterate[0], ARGS.hours_iterate[1]+1)
                 else:
-                    hour_iterator = range(ARGS.timeperiod[0], ARGS.timeperiod[0]+1)
+                    hour_iterator = [ARGS.timeperiod[0]]
                 for hour1 in hour_iterator:
                     
                     hour2 = hour1 + 1 if ARGS.hours_iterate else ARGS.timeperiod[1]
                     timerange = get_timerange(hour1, hour2)
-                    layername = year + month + 'h' + hour1 + ARGS.agg_level
-                    layer = _get_agg_layer(URI, agg_level=ARGS.agg_level,
-                                           agg_period=yyyymmdd,
-                                           timeperiod=timerange,
-                                           metric=metric['sql_acronym'],
-                                           layername=layername,
-                                           metric_name=metric['metric_name'])
-                    map_registry.addMapLayer(layer)
-                    layer.loadNamedStyle(stylepath)
+                    layername = year + month + 'h' + hour1 + ARGS.Aggregation
                     
-                    update_values = {'agg_period': _get_agg_period(ARGS.agg_level, year, month),
+                    mapper.load_agg_layer(yyyymmdd, timerange, layername)
+                    update_values = {'agg_period': _get_agg_period(ARGS.Aggregation, year, month),
                                      'period_name': ARGS.periodname,
                                      'from_to_hours': format_fromto_hr(hour1, hour2), 
-                                     'stat_description': metric['stat_description'],
-                                     'metric_attr': metric['metric_attr']
+                                     'stat_description': mapper.metric['stat_description'],
+                                     'metric_attr': mapper.metric['metric_attr']
                                     }
-                    update_labels(composition, labels_update = update_values)
-                    #TODO make sure only background_layers + new layer are loaded
+                    mapper.update_labels(labels_update = update_values)
+                    
+                    mapper.update_table()
+                    mapper.print_map( )
+                    mapper.clear_layer()
+    mapper.project.clear()
+    app.exitQgis()
             
 
-elif QGIS_CONSOLE:
-    import ConfigParser
+elif __name__ == '__console__':
     import StringIO
-    from datetime import time
+    import ConfigParser
+    
+    # Variables to change
+    # Paths
+    templatepath = "K:\\Big Data Group\\Data\\GIS\\Congestion_Reporting\\top_50_template.qpt"
+    stylepath = "K:\\Big Data Group\\Data\\GIS\\Congestion_Reporting\\top50style.qml"
+    print_directory = r"C:\Users\rdumas\Documents\test\\"
+    #print_format = ''
+    
+    # Setting up variables for iteration
+    agg_level = 'year' #['year','quarter','month']
+    metrics = ['b'] #['b','t'] for bti, tti
+    yyyymmrange = [['201501', '201501']] 
+    #for multiple ranges
+    #yyyymmrange = [['201203', '201301'],['201207', '201209']] 
+    hours_iterate = []
+    timeperiod = [17,18]
+    periodname = 'PM Peak'
+    # Copy and paste your db.cfg file between the quotes
+    s_config = '''
+    '''
+    
+    # The script can take it from here.
     
     buf = StringIO.StringIO(s_config)
     config = ConfigParser.ConfigParser()
     config.readfp(buf)
     dbset = config._sections['DBSETTINGS']
-    URI = _new_uri(dbset)
     
-    map_registry = QgsMapLayerRegistry.instance()
-    template = "K:\\Big Data Group\\Data\\GIS\\Congestion_Reporting\\top_50_template.qpt"
-    stylepath = "K:\\Big Data Group\\Data\\GIS\\Congestion_Reporting\\top50style.qml"
+    FORMAT = '%(asctime)-15s %(message)s'
+    logging.basicConfig(level=logging.INFO, format=FORMAT)
+    LOGGER = logging.getLogger(__name__)
     
-    printcomposer = load_print_composer(template)
+    
+    years = validate_multiple_yyyymm_range(yyyymmrange, agg_level)
+    
+    mapper = CongestionMapper(LOGGER, dbset, stylepath, templatepath,
+                              agg_level, console = True, iface = iface)
 
-    background_layers = get_background_layers(map_registry, BACKGROUND_LAYERNAMES)
-    
-    # Setting up variables for iteration
-    agg_level = 'year'
-    metric = METRICS['b']
-    yyyymmdd = "'2015-01-01'"
-    year = '2015'
-    month = '01'
-    hour1 = 17
-    hour2 = 18
-    periodname = 'PM Peak'
-    timerange = get_timerange(hour1, hour2)
-    layername = '2015_pm_reliable'
-    
-    # Begin iteration section
-    layer = _get_agg_layer(URI, agg_level=agg_level,
-                           agg_period=yyyymmdd,
-                           timeperiod=timerange,
-                           metric=metric['sql_acronym'],
-                           layername=layername,
-                           metric_name=metric['metric_name'])
-    
-    
-    map_registry.addMapLayer(layer)
-    layer.loadNamedStyle(stylepath)
-    
-    layerslist = [QgsMapCanvasLayer(layer)] + background_layers
-    iface.mapCanvas().setLayerSet(layerslist)
-    iface.mapCanvas().refresh()
-    
-    update_values = {'agg_period': _get_agg_period(agg_level, year, month),
-                     'period_name': periodname,
-                     'from_to_hours': format_fromto_hr(hour1, hour2), 
-                     'stat_description': metric['stat_description'],
-                     'metric_attr': metric['metric_attr']
-                    }
-    update_labels(printcomposer['QgsComposition'], labels_update = update_values)
-    table = printcomposer['QgsComposition'].getComposerItemById('table').multiFrame()
-    table.setVectorLayer(layer)
-    printcomposer['QgsComposition'].refreshItems()
+    for m in metrics:
+        mapper.set_metric(m)
+        for year in years:
+
+            for month in years[year]:
+                yyyymmdd = get_yyyymmdd(year, month)
+                if hours_iterate:
+                    hour_iterator = range(hours_iterate[0], hours_iterate[1]+1)
+                else:
+                    hour_iterator = [timeperiod[0]]
+                for hour1 in hour_iterator:
+                    
+                    hour2 = hour1 + 1 if hours_iterate else timeperiod[1]
+                    timerange = get_timerange(hour1, hour2)
+                    if periodname is not None:
+                        timeval = periodname.replace(' ','').lower()
+                    else:
+                        timeval = str(hour1)
+                    layername = str(year) + str(month) + 'h' + timeval + agg_level
+                    
+                    mapper.load_agg_layer(yyyymmdd, timerange, layername)
+                    mapper.update_canvas(iface = iface)
+                    update_values = {'agg_period': _get_agg_period(agg_level, year, month),
+                                     'period_name': periodname,
+                                     'from_to_hours': format_fromto_hr(hour1, hour2), 
+                                     'stat_description': mapper.metric['stat_description'],
+                                     'metric_attr': mapper.metric['metric_attr']
+                                    }
+                    #TODO Fix this hack
+                    mapper.update_labels(labels_dict = CongestionMapper.COMPOSER_LABELS, labels_update = update_values)
+                    
+                    mapper.update_table()
+                    mapper.print_map(print_directory + layername + '.png' )
+                    #mapper.clear_layer()
