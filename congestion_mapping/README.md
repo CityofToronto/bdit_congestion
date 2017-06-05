@@ -13,6 +13,7 @@ You can follow progress at [this Github milestone](https://github.com/CityofToro
 2. Process congestion metrics in the database using the `process_congestion_metrics` SQL function
 3. The Python element requires a working [QGIS installation](http://www.qgis.org/en/site/forusers/download.html)
 4. If wanting to work on the script outside of QGIS, set up a Python virtual environment for developing with QGIS based on [these instructions](http://gis.stackexchange.com/a/223325/36886).
+5. This project inherits from the [iteration_mapper](https://github.com/CityofToronto/bdit_python_utilities/tree/master/iteration_mapper). 
 
 ### The `congestion` schema
 
@@ -41,7 +42,7 @@ This function can be called with either of the two following sets of parameters:
 
 `agg_lvl` is matched to a specified aggregation level in `congestion.aggregation_levels`. These are keywords to the [`date_trunc`](https://www.postgresql.org/docs/9.6/static/functions-datetime.html#FUNCTIONS-DATETIME-TRUNC) function, which is how the metrics get aggregated over an aggregation period. Aggregation levels must therefore be an acceptable parameter to the [`date_trunc`](https://www.postgresql.org/docs/9.6/static/functions-datetime.html#FUNCTIONS-DATETIME-TRUNC) function. 
 
-`rom_mon` must be before `to_mon` and both must have a day = 1. There are no sanity checks on whether the days spanned by `from_mon-to_mon` is actually greater than the specified aggregation level so make sure to check the dates used in the function calls
+`from_mon` must be before `to_mon` and both must have a day = 1. There are no sanity checks on whether the days spanned by `from_mon-to_mon` is actually greater than the specified aggregation level so make sure to check the dates used in the function calls
 
 If the optional parameter `timeperiod` is not specified, the function will aggregate each hour of the day individually. Otherwise it will aggregate only over the specified timerange.
 
@@ -138,9 +139,9 @@ This application is currently only tested with QGIS `2.14.X`
 
 #### Contents:
 
-##### iteration_mapper
+##### congestion_mapper
 
-Base object for iterating map creation with PyQGIS. 
+###### Inherited from `iteration_mapper`: 
 
 **Attributes:**
  - `logger`: logging.logger object for logging messages
@@ -159,9 +160,7 @@ Base object for iterating map creation with PyQGIS.
  - `clear_layer()`: Remove added layer
  - `close_project()`: Close the project, if loaded
 
-##### congestion_mapper
-
-Inherits from `iteration_mapper`. 
+###### Unique to congestion_mapper
 
 **Attributes:**  
  - `SQL`: base `sql` scripts for each metric type
@@ -202,59 +201,3 @@ the day, and metrics to load layers from the PostgreSQL DB, add them to a
 template map and then print them to a png.
 
 Detects whether the script is being called from the PyQGIS Console by checking `if __name__ == '__console__'`
-
-## Challenges Solved
-
-### Programming in PyQGIS
-I thought that more documentation existed for PyQGIS before starting this project. I was mistaken. Three resources used were:  
-
-1. The [PyQGIS Cookbook](http://docs.qgis.org/testing/en/docs/pyqgis_developer_cookbook/), useful for startup but rather sparse (and occasionally wrong)
-2. The [PyQGIS tag](https://gis.stackexchange.com/questions/tagged/pyqgis) on GIS.se. Beware of undocumented changes to the API!
-3. [The QGIS API Documentation](http://qgis.org/api/2.14/) (Very sparse)
-
-An important thing to note from the [Cookbook's introduction](http://docs.qgis.org/testing/en/docs/pyqgis_developer_cookbook/intro.html) is that there are 4 different ways to interact with QGIS in Python, and the API is different for each:  
- - automatically run Python code when QGIS starts
- - issue commands in Python console within QGIS
- - create and use plugins in Python
- - create custom applications based on QGIS API
-
-Some questions/challenges that were overcome (in order):
- - [Why do I get a NameError for QDomDocument when attempting to programmatically load a template in the QGIS Python console?](https://gis.stackexchange.com/questions/221580/why-do-i-get-a-nameerror-for-qdomdocument-when-attempting-to-programmatically-lo)
- - [How to fix corrupted QGIS project file that causes Windows to freeze?](https://gis.stackexchange.com/questions/221621/how-to-fix-corrupted-qgis-project-file-that-causes-windows-to-freeze)
- - [Loading QgsComposition from template without throwing “QgsComposition constructor is deprecated”?](https://gis.stackexchange.com/questions/222717/loading-qgscomposition-from-template-without-throwing-qgscomposition-constructo)
- - [How to show a QgsComposition created in the QGIS Python console?](https://gis.stackexchange.com/questions/222748/how-to-show-a-qgscomposition-created-in-the-qgis-python-console)
- - [Programmatically changing layers in QGIS Print Composer?](https://gis.stackexchange.com/questions/223999/programmatically-changing-layers-in-qgis-print-composer)
- - [PyQGIS get existing ComposerAttributeTable from composition?](http://gis.stackexchange.com/q/224164/36886)
-
-### Python Objects
-While working on this project at some point PyLint threw a warning because too many parameters were being passed in a function. Searching for this warning on StackOverflow led to [the answer](http://stackoverflow.com/a/816517):
->Some of the 10 arguments are presumably related. Group them into an object, and pass that instead.
-
-This tied into another consideration: **Given that there are going to be more/other maps to automate, how do we make this project flexible/extensible to other tasks?** Is there a way to store and group variables and methods that are generalizable to other iterative mapping tasks into an object that can then be inherited for more specific tasks? **Yes.** This is the `IterationMapper` class, which is inherited by the `CongestionMapper` class. 
-
-## Next Steps and How to Contribute
-This project is currently a work in progress. Have a look at the [project kanban board](https://github.com/CityofToronto/bdit_congestion/projects/1) and the [opened issues in the milestone](https://github.com/CityofToronto/bdit_congestion/milestone/1)
-
-### How to extend
-
-#### In QGIS 
-1. Set up a new QGIS project with background layers properly styled. Note these layernames and to add them to the `BACKGROUND_LAYERNAMES` list.
-2. Load a sample layer of data and style it. Save the style to a style file.
-3. Set up the print composer.
-4. When adding labels to the print composer, note their ids to add to the `COMPOSER_LABELS` dictionary.
-
-   ![](img/composer_items.PNG)
-5. Save the print composer as a template with `Composer > Save as Template...`
-
-#### In Python 
-`IterationMapper` is the base class for iterating maps in QGIS. For new mapping tasks this baseclass should be inherited in the spirit of `CongestionMapper`. `BACKGROUND_LAYERNAMES` and `COMPOSER_LABELS` should be modified for the new composition, noting the elements from the QGIS project and print composer template as per above. `COMPOSER_LABELS` is a dictionary that takes the following form, where each id in the print composer is a key, and the string to be formatted is its corresponding value. In the string to be formatted, insert placeholder variables in curly braces `{agg_period}` where these elements of the string will be generated when automating. Have a look at [Using % and .format() for great good!](https://pyformat.info/)
-
-```python
-COMPOSER_LABELS = {'map_title': '{agg_period} Top 50 {metric_attr} Road Segments'}
-```
-
-A new method to generate layers from SQL like `CongestionMapper.load_agg_layer()` would need to be written, which prepares custom SQL and then assigns it to the URI with `self.uri.setDataSource("", sql, "geom", "", "Rank")` before calling `IterationMapper.load_layer()`. 
-
-The methods in `parsing_utils.py` are (mostly) specific to processing inputs related to congestion mapping, and the `parse_args()` method could be modified to process command-line inputs for different applications. There may be a way to have a generalizable argument parser that could be subclassed for future applications.
-
-`map_metric.py` only contains code to set up the `CongestionMapper` from either command-line or scripted input, and then loop over metrics, years and months to call layer loading methods, updating labels, and finally printing. 
