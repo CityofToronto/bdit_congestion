@@ -235,13 +235,12 @@ def validate_multiple_yyyymm_range(years_list, agg_level):
         years = _validate_yyyymm_range(years_list[0], agg_level)
     else:
         for yearrange in years_list:
-            years_to_add = _validate_yyyymm_range(yearrange, agg_level)
-            for year_to_add in years_to_add:
-                if year_to_add not in years:
-                    years[year_to_add] = years_to_add[year_to_add]
+            for year, months in (_validate_yyyymm_range(yearrange, agg_level)).items():
+                if year not in years:
+                    years[year] = months
                 else:
-                    years[year_to_add] = set.union(set(years_to_add[year_to_add]),
-                                                   set(years[year_to_add]))
+                    years[year] = set.union(set(months),
+                                                   set(years[year]))
     return years
 
 def get_timerange(time1, time2):
