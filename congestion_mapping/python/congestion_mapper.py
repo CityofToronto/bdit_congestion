@@ -89,6 +89,7 @@ class CongestionMapper( IteratingMapper ):
         # params: (schema, 'tablename', geom column, WHERE clause, gid)
         self.uri.setDataSource("", sql, "geom", "", "Rank")
         self.load_layer(layername, 'postgres')
+        return self
         
             
     def set_metric(self, metric_id):
@@ -97,9 +98,11 @@ class CongestionMapper( IteratingMapper ):
         if metric_id not in self.METRICS:
             raise ValueError('{metric_id} is unsupported'.format(metric_id=metric_id))
         self.metric = self.METRICS[metric_id]
+        return self
 
     def update_table(self):
         """Update the table in the composition to use current layer
         """
         table = self.composition.getComposerItemById('table').multiFrame()
         table.setVectorLayer(self.layer)
+        return self
