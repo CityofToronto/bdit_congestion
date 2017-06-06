@@ -45,7 +45,7 @@ class ArgParseTestCase(unittest.TestCase):
     '''Tests for argument parsing'''
 
     def __init__(self, *args, **kwargs):
-        self.testing_params = {'prog':'TESTING', 'usage':''}
+        self.testing_params = {'prog':u'TESTING', 'usage':u''}
         self.stderr_msg = 'usage: \nTESTING: error: {errmsg}\n'
         super(ArgParseTestCase, self).__init__(*args, **kwargs)
     
@@ -88,7 +88,7 @@ class ArgParseTestCase(unittest.TestCase):
         with self.assertRaises(SystemExit) as cm, capture_sys_output() as (stdout, stderr):
             args = parse_args('b year -p 8 -r 201201'.split(), **self.testing_params)
         self.assertEqual(2, cm.exception.code)
-        self.assertEqual('usage: \nTESTING: error: argument -r/--range: expected 2 arguments\n', stderr.getvalue())
+        self.assertEqual('usage: \nTESTING: error: argument -r/--range: expected 2 argument(s)\n', stderr.getvalue())
 
     def test_custom_period_name_exception(self):
         '''Test if combining custom time period name with -i produces the right exception'''
