@@ -11,6 +11,7 @@ library(knitr)
 # CONNECT TO POSTGRESQL
 ########################
 drv <- dbDriver("PostgreSQL")
+con <- dbConnect()
 
 ####################
 # RETRIEVE DATASETS
