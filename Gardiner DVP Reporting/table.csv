@@ -1,0 +1,21 @@
+"","Route","Begins At","Ends At","AM Peak","Midday","PM Peak","Evening"
+"1","Gardiner EB","Wickham Rd.","Grand Ave.",40,101,58,99
+"2","Gardiner EB","Grand Ave.","Dufferin St.",25,53,38,64
+"3","Gardiner EB","Dufferin St.","Spadina Ave.",66,63,64,67
+"4","Gardiner EB","Spadina Ave.","Parliament St.",90,88,79,90
+"5","Gardiner EB","Parliament St.","Dundas St. E",84,80,47,65
+"6","Gardiner WB","Parliament St.","Spadina Ave.",47,42,16,58
+"7","Gardiner WB","Spadina Ave.","Dufferin St.",45,54,40,53
+"8","Gardiner WB","Dufferin St.","Grand Ave.",47,82,69,75
+"9","Gardiner WB","Grand Ave.","Wickham Rd.",72,90,73,98
+"10","DVP NB","Dundas St. E","Bayview Ramp",76,63,26,55
+"11","DVP NB","Bayview Ramp","Don Mills Rd.",55,57,27,53
+"12","DVP NB","Don Mills Rd.","Wynford Dr.",28,35,19,44
+"13","DVP NB","Wynford Dr.","Lawrence St. E",28,35,24,43
+"14","DVP NB","Lawrence St. E","York Mills Rd.",45,56,51,61
+"15","DVP SB","York Mills Rd.","Lawrence St. E",20,51,45,81
+"16","DVP SB","Lawrence St. E","Wynford Dr.",27,54,53,80
+"17","DVP SB","Wynford Dr.","Don Mills Rd.",32,69,72,90
+"18","DVP SB","Don Mills Rd.","Bayview Ramp",53,77,70,87
+"19","DVP SB","Bayview Ramp","Dundas St. E",89,91,93,84
+"20","DVP SB","Dundas St. E","Parliament St.",78,81,64,86

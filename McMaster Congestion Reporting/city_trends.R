@@ -299,7 +299,7 @@ dat.mto.vol$year[dat.mto.vol$mto.location.id > 28] <- 2014
 dat.13a <- dat.13[,c("weekday", "month", "hour", "newADD", "count.adj", "CorridorUID")]
 dat.13a$year <- 2013
 
-dat.14a<-dat.14[,c("weekday", "month", "hour", "newADD", "count.adj", "CorridorUID")]
+dat.14a <- dat.14[,c("weekday", "month", "hour", "newADD", "count.adj", "CorridorUID")]
 dat.14a$year <- 2014
 
 dat.13a.14a <- data.frame(rbind(dat.13a, dat.14a))

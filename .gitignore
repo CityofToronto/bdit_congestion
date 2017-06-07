@@ -133,3 +133,11 @@ McMaster Congestion Reporting/out/*
 McMaster Congestion Reporting/analysis/*
 McMaster Congestion Reporting/.Rhistory
 *.RData
+Gardiner DVP Reporting/data.csv
+Gardiner DVP Reporting/table.xl.pdf
+*.xlsx
+Gardiner DVP Reporting/gardiner_dvp_summary.pdf
+Gardiner DVP Reporting/table.svg
+Gardiner DVP Reporting/gex.svg
+Gardiner DVP Reporting/gardiner_dvp_summary.svg
+Gardiner DVP Reporting/dvp.svg
