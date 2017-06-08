@@ -6,5 +6,6 @@ CREATE TABLE here_analysis.corridors (
 	length_km numeric not null,
 	street varchar(50),
 	direction varchar(10),
-	group_id integer
+	group_id integer,
+	group_order integer
 	);
