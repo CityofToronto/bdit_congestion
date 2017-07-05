@@ -43,10 +43,10 @@ class CongestionMapper( IteratingMapper ):
     IteratingMapper.BACKGROUND_LAYERNAMES = BACKGROUND_LAYERNAMES
     
     
-    def __init__(self, logger, dbsettings, stylepath, templatepath, agg_level, *args, **kwargs):
+    def __init__(self, logger, dbsettings, stylepath, templatepath, sql_string, gid, agg_level, *args, **kwargs):
         """Initialize CongestionMapper and parent object
         """
-        super(CongestionMapper, self).__init__(logger, dbsettings, stylepath, templatepath, *args, **kwargs)
+        super(CongestionMapper, self).__init__(logger, dbsettings, stylepath, templatepath, sql_string, *args, gid=gid, **kwargs)
         self.agg_level = agg_level
         self.metric = None
         self.background_layers = self.get_background_layers(self.BACKGROUND_LAYERNAMES)
@@ -78,17 +78,14 @@ class CongestionMapper( IteratingMapper ):
         if starttime > endtime:
             raise ValueError('start time {starttime} after end time {endtime}'.format(starttime=starttime, endtime=endtime))
         
-        sql = '''(SELECT (congestion.map_metric('{agg_lvl}', '{agg_period}'::DATE, '{starttime}'::TIME,
-         '{endtime}'::TIME, '{metric}', '{metric_name}')).* )''' 
-        sql = sql.format(agg_lvl=self.agg_level,
-                         starttime=starttime, 
-                         endtime=endtime,
-                         agg_period=get_yyyymmdd(year, month),
-                         metric=self.metric['sql_acronym'],
-                         metric_name=self.metric['metric_name'])
-        # params: (schema, 'tablename', geom column, WHERE clause, gid)
-        self.uri.setDataSource("", sql, "geom", "", "Rank")
-        self.load_layer(layername, 'postgres')
+        
+        sql_params = {'agg_lvl':self.agg_level,
+                      'starttime':starttime,
+                      'endtime':endtime,
+                      'agg_period':get_yyyymmdd(year, month),
+                      'metric':self.metric['sql_acronym'],
+                      'metric_name':self.metric['metric_name']}
+        self.load_sql_layer(layername, sql_params)
         return self
         
             

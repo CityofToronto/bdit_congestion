@@ -13,7 +13,7 @@ You can follow progress at [this Github milestone](https://github.com/CityofToro
 2. Process congestion metrics in the database using the `process_congestion_metrics` SQL function
 3. The Python element requires a working [QGIS installation](http://www.qgis.org/en/site/forusers/download.html)
 4. If wanting to work on the script outside of QGIS, set up a Python virtual environment for developing with QGIS based on [these instructions](http://gis.stackexchange.com/a/223325/36886).
-5. This project inherits from the [iteration_mapper](https://github.com/CityofToronto/bdit_python_utilities/tree/master/iteration_mapper), so clone `bdit_python_utilities` and [add the repository to your Python scripts](https://github.com/CityofToronto/bdit_python_utilities#add-this-repository-to-your-python-scripts) (if you're using a python virtual environment, you'll have to add the repo to the environment's scripts). Import the base class with `from iteration_mapper import IteratingMapper`.
+5. This project inherits from the [iteration_mapper](https://github.com/CityofToronto/bdit_python_utilities/tree/master/iteration_mapper), so clone `bdit_python_utilities` and [add the repository to your Python scripts](https://github.com/CityofToronto/bdit_python_utilities#add-this-repository-to-your-python-scripts) (if you're using a virtual environment, you'll have to add the repo to the environment's scripts). Import the base class with `from iteration_mapper import IteratingMapper`.
 
 ### The `congestion` schema
 

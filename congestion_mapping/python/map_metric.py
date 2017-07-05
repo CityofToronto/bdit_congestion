@@ -235,6 +235,9 @@ elif __name__ == '__console__':
     s_config = '''
     '''
     
+    sql = '''(SELECT (congestion.map_metric('{agg_lvl}', '{agg_period}'::DATE, '{starttime}'::TIME,
+         '{endtime}'::TIME, '{metric}', '{metric_name}')).* )''' 
+    
     # The script can take it from here.
     
     buf = StringIO.StringIO(s_config)
@@ -249,7 +252,7 @@ elif __name__ == '__console__':
     
     years = validate_multiple_yyyymm_range(yyyymmrange, agg_level)
     
-    mapper = CongestionMapper(LOGGER, dbset, stylepath, templatepath,
+    mapper = CongestionMapper(LOGGER, dbset, stylepath, templatepath, sql, 'Rank',
                               agg_level, console = True, iface = iface)
 
     for m in metrics:
