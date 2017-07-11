@@ -5,5 +5,5 @@ CREATE TABLE here_analysis.corridor_links (
 	corridor_id integer not null,
 	link_dir text not null,
 	seq integer not null,
-	distance_km numeric not null
+	distance_km numeric
 	);

@@ -1,0 +1,9 @@
+﻿SELECT A.corridor_id, C.corridor_name, A.date_start, A.date_end, A.hh, SUM(tt) AS average_tt, COUNT(B.*) AS num_links, SUM(ST_Length(ST_Transform(D.geom,32190)))/1000.0 AS distance_km
+FROM here_analysis.corridor_link_agg A
+INNER JOIN here_analysis.corridor_links B USING (corridor_id, link_dir)
+INNER JOIN here_analysis.corridors C USING (corridor_id)
+INNER JOIN here_gis.streets_16_1 D ON LEFT(B.link_dir,-1)::numeric = D.link_id
+WHERE hh >= 1 AND hh <= 24 AND corridor_id <= 40
+GROUP BY A.corridor_id, C.corridor_name, A.hh, A.date_start, A.date_end
+ORDER BY A.corridor_id, A.date_start, A.date_end, A.hh
+
