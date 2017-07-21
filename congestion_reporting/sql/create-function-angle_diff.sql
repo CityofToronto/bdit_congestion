@@ -19,7 +19,7 @@ BEGIN
 		angle2 := angle2 - 180;
 	END IF;
 
-	angle := abs(angle1 - angle2);
+	angle := LEAST(abs(angle1 - angle2), abs(180-abs(angle1 - angle2)));
 	RETURN angle;
 END;
 $BODY$

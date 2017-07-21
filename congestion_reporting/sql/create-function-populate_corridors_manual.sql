@@ -1,4 +1,4 @@
-﻿CREATE OR REPLACE FUNCTION populate_corridors() RETURNS TRIGGER as $$
+﻿CREATE OR REPLACE FUNCTION populate_corridors_manual() RETURNS void as $$
 
 DECLARE
 	corridor_rec RECORD;
@@ -60,7 +60,7 @@ BEGIN
 		curr_street := (SELECT CASE WHEN street_alt IS NULL THEN street ELSE CONCAT(street_alt,' / ',street) END FROM here_analysis.corridor_load WHERE corridor_load_id = corridor_rec.corridor_load_id);
 
 		-- insert record into here_analysis.corridors
-		INSERT INTO here_analysis.corridors(corridor_id, corridor_name, street, direction, intersection_start, intersection_end, corridor_load_id)
+		INSERT INTO here_analysis.corridors(corridor_id, corridor_name, street, direction,  intersection_start, intersection_end, corridor_load_id)
 		SELECT 	curr_corr_id,
 			CONCAT(curr_street,' ', CASE 	WHEN A.direction = 'EB' THEN 'WB'
 							WHEN A.direction = 'WB' THEN 'EB'
@@ -113,11 +113,10 @@ BEGIN
 
 	UPDATE here_analysis.corridors A
 	SET num_links = (SELECT COUNT(*) FROM here_analysis.corridor_links B WHERE B.corridor_id = A.corridor_id);
-	
+
 	UPDATE here_analysis.corridor_links A
 	SET tot_distance_km = (SELECT SUM(distance_km) FROM here_analysis.corridor_links B WHERE B.corridor_id = A.corridor_id AND A.seq >= B.seq);
-
-	RETURN NULL;
+	
 END;
 
 $$ LANGUAGE plpgsql;
