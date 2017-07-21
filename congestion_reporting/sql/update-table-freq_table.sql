@@ -20,3 +20,21 @@ UPDATE here_analysis.freq_table A
 SET low_pct = B.low_pct, high_pct = B.high_pct
 FROM freq_ranges B
 WHERE A.freq_id = B.freq_id;
+
+DROP INDEX IF EXISTS here_analysis.freq_table_freq_id_idx;
+CREATE INDEX freq_table_freq_id_idx
+  ON here_analysis.freq_table
+  USING btree
+  (freq_id);
+
+DROP INDEX IF EXISTS here_analysis.freq_table_seq_a_seq_b_idx;
+CREATE INDEX freq_table_seq_a_seq_b_idx
+  ON here_analysis.freq_table
+  USING btree
+  (seq_a, seq_b);
+
+DROP INDEX IF EXISTS here_analysis.freq_table_spd_bin_a_idx;
+CREATE INDEX freq_table_spd_bin_a_idx
+  ON here_analysis.freq_table
+  USING btree
+  (spd_bin_a);

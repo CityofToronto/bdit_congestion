@@ -1,4 +1,16 @@
 ﻿TRUNCATE	here_analysis.corridor_links_15min;
+TRUNCATE	here_analysis.corridor_links_15min_201601;
+TRUNCATE	here_analysis.corridor_links_15min_201602;
+TRUNCATE	here_analysis.corridor_links_15min_201603;
+TRUNCATE	here_analysis.corridor_links_15min_201604;
+TRUNCATE	here_analysis.corridor_links_15min_201605;
+TRUNCATE	here_analysis.corridor_links_15min_201606;
+TRUNCATE	here_analysis.corridor_links_15min_201607;
+TRUNCATE	here_analysis.corridor_links_15min_201608;
+TRUNCATE	here_analysis.corridor_links_15min_201609;
+TRUNCATE	here_analysis.corridor_links_15min_201610;
+TRUNCATE	here_analysis.corridor_links_15min_201611;
+TRUNCATE	here_analysis.corridor_links_15min_201612;
 
 INSERT INTO 	here_analysis.corridor_links_15min
 
@@ -21,7 +33,7 @@ WHERE		A.tx::date >= '2016-01-01'
 		AND A.tx::date < '2017-01-01'
 		AND EXTRACT(dow FROM A.tx) IN (1,2,3,4,5)
 		AND E.dt IS NULL
-		AND ((corridor_id > 161 AND corridor_id <= 175) OR (corridor_id > 330 AND corridor_id <= 342))
+		AND ((corridor_id > 161 AND corridor_id <= 281) OR (corridor_id > 436 AND corridor_id <= 550))
 		
 GROUP BY 	C.corridor_id, 
 		B.link_dir,
@@ -31,4 +43,3 @@ GROUP BY 	C.corridor_id,
 ORDER BY 	C.corridor_id,
 		date_trunc('hour', A.tx) + INTERVAL '30 min' * floor(date_part('minute', A.tx) / 30.0),
 		B.seq;
-
