@@ -6,6 +6,7 @@ CREATE TABLE here_analysis.corridor_summary (
 	year_bin date,
 	month_bin date,
 	hh smallint,
+	spd_avg numeric,
 	tt_avg numeric,
 	tt_50 numeric,
 	tt_95 numeric,

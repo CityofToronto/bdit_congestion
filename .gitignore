@@ -144,3 +144,8 @@ Gardiner DVP Reporting/dvp.svg
 =======
 python/congestion_mapping/db.cfg
 congestion_mapping/python/db.cfg
+*.jpg
+*.jpeg
+*.svg
+*.png
+congestion_reporting/r/connect/connect.R

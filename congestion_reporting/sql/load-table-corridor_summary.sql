@@ -39,9 +39,14 @@ GROUP BY	A.corridor_id,
 		EXTRACT(HOUR FROM datetime_bin);
 
 UPDATE 	here_analysis.corridor_summary A
-SET 	tti = round(A.tt_50 / B.tt_ff,4)
+SET 	tti = round(A.tt_avg / B.tt_ff,4)
 FROM 	here_analysis.corridor_ff B
 WHERE 	B.corridor_id = A.corridor_id;
 
 UPDATE 	here_analysis.corridor_summary A
 SET 	bti = round(A.tt_95 / A.tt_avg,4);
+
+UPDATE 	here_analysis.corridor_summary A
+SET 	spd_avg = round(B.length_km / A.tt_avg * 3600.0 ,4)
+FROM	here_analysis.corridors B
+WHERE	A.corridor_id = B.corridor_id;

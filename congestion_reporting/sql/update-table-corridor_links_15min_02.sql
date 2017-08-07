@@ -1,4 +1,4 @@
-﻿/*
+﻿
 -- UPDATE here_analysis.corridor_links_15min
 -- SET spd_avg = NULL, tt_avg = NULL
 -- WHERE estimated = TRUE;
@@ -286,7 +286,7 @@ SET		spd_avg = B.avg_spd
 FROM		simulation_prep3 B
 WHERE 		B.corridor_id = A.corridor_id AND A.seq = B.seq AND A.datetime_bin = B.datetime_bin;
 
-*/
+
 -- ROUND SIX
 
 DROP TABLE IF EXISTS simulation_prep;

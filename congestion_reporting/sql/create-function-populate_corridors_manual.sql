@@ -1,4 +1,4 @@
-﻿CREATE OR REPLACE FUNCTION populate_corridors_manual() RETURNS void as $$
+﻿CREATE OR REPLACE FUNCTION here_analysis.populate_corridors_manual() RETURNS void as $$
 
 DECLARE
 	corridor_rec RECORD;
@@ -72,8 +72,8 @@ BEGIN
 							WHEN A.direction = 'WB' THEN 'EB'
 							WHEN A.direction = 'NB' THEN 'SB'
 							WHEN A.direction = 'SB' THEN 'NB' END AS direction,
-			A.intersection_start,
-			A.intersection_end,
+			A.intersection_end AS intersection_start,
+			A.intersection_start AS intersection_end,
 			A.corridor_load_id
 		FROM here_analysis.corridor_load A WHERE corridor_load_id = corridor_rec.corridor_load_id;
 
@@ -105,9 +105,6 @@ BEGIN
 		SET length_km = corr_length
 		WHERE corridor_id = curr_corr_id;
 
-		UPDATE here_analysis.corridor_load
-		SET processed = TRUE
-		WHERE corridor_load_id = corridor_rec.corridor_load_id;
 		
 	END LOOP;
 
@@ -116,7 +113,9 @@ BEGIN
 
 	UPDATE here_analysis.corridor_links A
 	SET tot_distance_km = (SELECT SUM(distance_km) FROM here_analysis.corridor_links B WHERE B.corridor_id = A.corridor_id AND A.seq >= B.seq);
-	
+
+	UPDATE here_analysis.corridor_load
+	SET processed = TRUE;
 END;
 
 $$ LANGUAGE plpgsql;
