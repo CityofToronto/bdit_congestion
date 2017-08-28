@@ -1,18 +1,17 @@
 ﻿
-SELECT 		X.street,
-		X.corridor_id,
+SELECT 		X.group_id,
+		X.street,
 		X.direction,
 		ST_AsText(ST_LineMerge(ST_Multi(ST_Union(geom)))) AS X
-FROM		(	SELECT 		A.corridor_id,
+FROM		(	SELECT 		C.group_id,
 					C.street,
 					C.direction,
-					A.seq, 
 					(CASE WHEN RIGHT(A.link_dir,1) = 'F' THEN B.geom ELSE ST_Reverse(B.geom) END) as geom
 			FROM 		here_analysis.corridor_links A
 			INNER JOIN 	here_gis.streets_16_1 B ON LEFT(A.link_dir,-1)::numeric = B.link_id
 			INNER JOIN	here_analysis.corridors C USING (corridor_id)
 			WHERE 		C.group_id > 12
-			ORDER BY 	A.corridor_id, C.direction, A.seq
+			ORDER BY 	C.direction, A.seq
 		) X
-GROUP BY 	X.street, X.corridor_id, X.direction
-ORDER BY 	X.corridor_id;
+GROUP BY 	X.group_id, X.street, X.direction
+ORDER BY 	X.group_id;

@@ -149,3 +149,4 @@ congestion_mapping/python/db.cfg
 *.svg
 *.png
 congestion_reporting/r/connect/connect.R
+congestion_reporting/pems/csv/*
