@@ -23,7 +23,8 @@ FROM 		here_analysis.corridor_link_agg A
 INNER JOIN	here_analysis.corridor_links USING (link_dir, corridor_id)
 INNER JOIN	here_analysis.corridors C USING (corridor_id)
 
-WHERE 		C.group_id IN (13,14,21,22,23,24) 
+WHERE 		C.group_id IN (13,14,15,16,17,18,19,20,21,22,23,24,25,26)
+		AND A.dt = '[2017-09-11,2017-10-01)'
 		AND A.day_type = 12
 GROUP BY 	C.corridor_id, C.corridor_name, C.street, C.direction, C.intersection_start, C.intersection_end, C.length_km, A.hh
 HAVING 		C.num_links = COUNT(*)

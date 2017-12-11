@@ -150,3 +150,5 @@ congestion_mapping/python/db.cfg
 *.png
 congestion_reporting/r/connect/connect.R
 congestion_reporting/pems/csv/*
+congestion_reporting/pems/summary.csv
+congestion_reporting/sql/test_query.sql
