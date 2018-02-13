@@ -13,7 +13,7 @@ FROM		(	SELECT 		C.group_id,
 			FROM 		here_analysis.corridor_links A
 			INNER JOIN 	here_gis.streets_16_1 B ON LEFT(A.link_dir,-1)::numeric = B.link_id
 			INNER JOIN	here_analysis.corridors C USING (corridor_id)
-			WHERE 		C.group_id > 94
+			WHERE 		C.group_id IN (29,30)
 			ORDER BY 	A.corridor_id, C.direction, A.seq
 		) X
 GROUP BY 	X.group_id, X.street, X.corridor_id, X.direction

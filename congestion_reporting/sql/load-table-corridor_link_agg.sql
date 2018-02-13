@@ -12,8 +12,8 @@ WITH VAR AS (	SELECT
 		0 as dt7, -- sunday
 		0 as dt8, -- holidays
 		0 as dt9, -- holiday extensions
-		'2017-09-11'::date as date_start,
-		'2017-10-01'::date as date_end)
+		'2016-05-10'::date as date_start,
+		'2016-05-12'::date as date_end)
 		
 SELECT 		C.corridor_id, 
 		B.link_dir, 
@@ -39,10 +39,10 @@ LEFT JOIN	ref.holiday E ON e.dt = A.tx::date
 
 WHERE		A.tx::date >= VAR.date_start 
 		AND A.tx::date <= VAR.date_end
-		-- AND (A.tx::date <= '2017-05-05' OR A.tx::date >= '2017-05-10')
+		-- AND A.tx NOT IN ('2015-03-16','2015-03-17','2015-03-18','2015-03-19','2015-03-20','2015-04-03','2015-09-07','2015-10-12')
 		AND EXTRACT(dow FROM A.tx) IN (1*dt1,2*dt2,3*dt3,4*dt4,5*dt5,6*dt6,7*dt7)
 		AND CASE WHEN dt8 = 0 THEN E.dt IS NULL END
-		AND C.group_id IN (13,14,15,16,17,18,19,20,21,22,23,24,25,26)
+		AND C.group_id IN (29,30)
 		
 GROUP BY 	C.corridor_id, 
 		B.link_dir,

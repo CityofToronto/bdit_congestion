@@ -4,6 +4,6 @@
 
 FROM 		here_analysis.corridor_links A
 INNER JOIN	here_analysis.corridors C USING (corridor_id)
-WHERE		C.group_id > 94
+WHERE		C.group_id IN (29,30)
 GROUP BY	C.group_id, A.link_dir
 HAVING		COUNT(*) > 1
