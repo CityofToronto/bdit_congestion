@@ -24,8 +24,8 @@ FROM 		here_analysis.corridor_link_agg A
 INNER JOIN	here_analysis.corridor_links USING (link_dir, corridor_id)
 INNER JOIN	here_analysis.corridors C USING (corridor_id)
 
-WHERE 		C.group_id IN (47,48,49,50,51,52,53,54)
-		AND A.dt = '[2019-01-12,2019-02-08)'
+WHERE 		C.group_id IN (1,2,11,12)
+		AND A.dt = '[2018-04-25,2018-05-17)'
 		AND A.day_type = 496
 GROUP BY 	C.corridor_id, C.corridor_name, C.street, C.direction, C.intersection_start, C.intersection_end, C.length_km, A.hh
 HAVING 		C.num_links = COUNT(*)
@@ -53,19 +53,19 @@ SELECT	group_id,
 	round(length_km/(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY (CASE WHEN hh IN (12,12.5,13,13.5,14,14.5) THEN tt_median ELSE NULL END))::numeric)*3600.0,1) AS off_med_spd,
 	round(length_km/(PERCENTILE_CONT(0) WITHIN GROUP (ORDER BY (CASE WHEN hh IN (12,12.5,13,13.5,14,14.5) THEN tt_lower ELSE NULL END))::numeric)*3600.0,1) AS off_max_spd,
 	round(length_km/(PERCENTILE_CONT(1) WITHIN GROUP (ORDER BY (CASE WHEN hh IN (12,12.5,13,13.5,14,14.5) THEN tt_upper ELSE NULL END))::numeric)*3600.0,1) AS off_min_spd,
-	round(AVG(CASE WHEN hh IN (15.5,16,16.5,17,17.5,18) THEN tt_average ELSE NULL END),1) AS pm_avg_tt,
-	round(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY (CASE WHEN hh IN (15.5,16,16.5,17,17.5,18) THEN tt_median ELSE NULL END))::numeric,1) AS pm_med_tt,
-	round(PERCENTILE_CONT(0) WITHIN GROUP (ORDER BY (CASE WHEN hh IN (15.5,16,16.5,17,17.5,18) THEN tt_lower ELSE NULL END))::numeric,1) AS pm_min_tt,
-	round(PERCENTILE_CONT(1) WITHIN GROUP (ORDER BY (CASE WHEN hh IN (15.5,16,16.5,17,17.5,18) THEN tt_upper ELSE NULL END))::numeric,1) AS pm_max_tt,
-	round(length_km/AVG(CASE WHEN hh IN (15.5,16,16.5,17,17.5,18) THEN tt_average ELSE NULL END)*3600.0,1) AS pm_avg_spd,
-	round(length_km/(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY (CASE WHEN hh IN (15.5,16,16.5,17,17.5,18) THEN tt_median ELSE NULL END))::numeric)*3600.0,1) AS pm_med_spd,
-	round(length_km/(PERCENTILE_CONT(0) WITHIN GROUP (ORDER BY (CASE WHEN hh IN (15.5,16,16.5,17,17.5,18) THEN tt_lower ELSE NULL END))::numeric)*3600.0,1) AS pm_max_spd,
-	round(length_km/(PERCENTILE_CONT(1) WITHIN GROUP (ORDER BY (CASE WHEN hh IN (15.5,16,16.5,17,17.5,18) THEN tt_upper ELSE NULL END))::numeric)*3600.0,1) AS pm_min_spd,
+	round(AVG(CASE WHEN hh IN (15.75,16.25,16.75,17.25,17.75,18.25) THEN tt_average ELSE NULL END),1) AS pm_avg_tt,
+	round(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY (CASE WHEN hh IN (15.75,16.25,16.75,17.25,17.75,18.25) THEN tt_median ELSE NULL END))::numeric,1) AS pm_med_tt,
+	round(PERCENTILE_CONT(0) WITHIN GROUP (ORDER BY (CASE WHEN hh IN (15.75,16.25,16.75,17.25,17.75,18.25) THEN tt_lower ELSE NULL END))::numeric,1) AS pm_min_tt,
+	round(PERCENTILE_CONT(1) WITHIN GROUP (ORDER BY (CASE WHEN hh IN (15.75,16.25,16.75,17.25,17.75,18.25) THEN tt_upper ELSE NULL END))::numeric,1) AS pm_max_tt,
+	round(length_km/AVG(CASE WHEN hh IN (15.75,16.25,16.75,17.25,17.75,18.25) THEN tt_average ELSE NULL END)*3600.0,1) AS pm_avg_spd,
+	round(length_km/(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY (CASE WHEN hh IN (15.75,16.25,16.75,17.25,17.75,18.25) THEN tt_median ELSE NULL END))::numeric)*3600.0,1) AS pm_med_spd,
+	round(length_km/(PERCENTILE_CONT(0) WITHIN GROUP (ORDER BY (CASE WHEN hh IN (15.75,16.25,16.75,17.25,17.75,18.25) THEN tt_lower ELSE NULL END))::numeric)*3600.0,1) AS pm_max_spd,
+	round(length_km/(PERCENTILE_CONT(1) WITHIN GROUP (ORDER BY (CASE WHEN hh IN (15.75,16.25,16.75,17.25,17.75,18.25) THEN tt_upper ELSE NULL END))::numeric)*3600.0,1) AS pm_min_spd,
 	sum(CASE WHEN hh IN (7,7.5,8,8.5,9,9.5) THEN obs_avg ELSE 0 END) AS am_obs,
 	sum(CASE WHEN hh IN (12,12.5,13,13.5,14,14.5) THEN obs_avg ELSE 0 END) AS off_obs,
-	sum(CASE WHEN hh IN (15.5,16,16.5,17,17.5,18) THEN obs_avg ELSE 0 END) AS pm_obs
+	sum(CASE WHEN hh IN (15.75,16.25,16.75,17.25,17.75,18.25) THEN obs_avg ELSE 0 END) AS pm_obs
 
 
 FROM	temp_data
 GROUP BY group_id, corridor_id, group_order, concat(street,' ',direction), intersection_start, intersection_end, length_km
-ORDER BY group_id, group_order;
+ORDER BY group_id, group_order

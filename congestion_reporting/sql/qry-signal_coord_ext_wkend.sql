@@ -14,17 +14,18 @@ CREATE TEMPORARY TABLE temp_data (
 	tt_average numeric,
 	tt_median numeric,
 	tt_lower numeric,
-	tt_upper numeric
+	tt_upper numeric,
+	obs_avg numeric
 	);
 	
-INSERT INTO 	temp_data(group_id, group_order, corridor_id, corridor_name, street, direction, intersection_start, intersection_end, length_km, hh, tt_average, tt_median, tt_lower, tt_upper)
-SELECT 		C.group_id, C.group_order, C.corridor_id, C.corridor_name, C.street, C.direction, C.intersection_start, C.intersection_end, C.length_km, A.hh, SUM(tt_avg) AS tt_average, SUM(tt_med) AS tt_median, SUM(tt_15) as tt_lower, SUM(tt_85) as tt_upper
+INSERT INTO 	temp_data(group_id, group_order, corridor_id, corridor_name, street, direction, intersection_start, intersection_end, length_km, hh, tt_average, tt_median, tt_lower, tt_upper, obs_avg)
+SELECT 		C.group_id, C.group_order, C.corridor_id, C.corridor_name, C.street, C.direction, C.intersection_start, C.intersection_end, C.length_km, A.hh, SUM(tt_avg) AS tt_average, SUM(tt_med) AS tt_median, SUM(tt_15) as tt_lower, SUM(tt_85) as tt_upper, AVG(obs) AS obs_avg
 FROM 		here_analysis.corridor_link_agg A
 INNER JOIN	here_analysis.corridor_links USING (link_dir, corridor_id)
 INNER JOIN	here_analysis.corridors C USING (corridor_id)
 
-WHERE 		C.group_id IN (13,14,15,16,17,18,19,20,21,22,23,24,25,26)
-		AND A.dt = '[2017-09-11,2017-10-01)'
+WHERE 		C.group_id IN (47,48,49,50,51,52,53,54)
+		AND A.dt = '[2019-01-12,2019-02-08)'
 		AND A.day_type = 12
 GROUP BY 	C.corridor_id, C.corridor_name, C.street, C.direction, C.intersection_start, C.intersection_end, C.length_km, A.hh
 HAVING 		C.num_links = COUNT(*)
@@ -43,7 +44,8 @@ SELECT	group_id,
 	round(length_km/AVG(CASE WHEN hh IN (12,12.5,13,13.5,14,14.5,15,15.5,16,16.5) THEN tt_average ELSE NULL END)*3600.0,1) AS wkend_avg_spd,
 	round(length_km/(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY (CASE WHEN hh IN (12,12.5,13,13.5,14,14.5,15,15.5,16,16.5) THEN tt_median ELSE NULL END))::numeric)*3600.0,1) AS wkend_med_spd,
 	round(length_km/(PERCENTILE_CONT(0) WITHIN GROUP (ORDER BY (CASE WHEN hh IN (12,12.5,13,13.5,14,14.5,15,15.5,16,16.5) THEN tt_lower ELSE NULL END))::numeric)*3600.0,1) AS wkend_max_spd,
-	round(length_km/(PERCENTILE_CONT(1) WITHIN GROUP (ORDER BY (CASE WHEN hh IN (12,12.5,13,13.5,14,14.5,15,15.5,16,16.5) THEN tt_upper ELSE NULL END))::numeric)*3600.0,1) AS wkend_min_spd
+	round(length_km/(PERCENTILE_CONT(1) WITHIN GROUP (ORDER BY (CASE WHEN hh IN (12,12.5,13,13.5,14,14.5,15,15.5,16,16.5) THEN tt_upper ELSE NULL END))::numeric)*3600.0,1) AS wkend_min_spd,
+	sum(CASE WHEN hh IN (12,12.5,13,13.5,14,14.5,15,15.5,16,16.5) THEN obs_avg ELSE 0 END) AS wkend_obs
 
 FROM	temp_data
 GROUP BY group_id, corridor_id, group_order, concat(street,' ',direction), intersection_start, intersection_end, length_km

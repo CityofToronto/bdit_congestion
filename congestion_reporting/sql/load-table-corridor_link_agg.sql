@@ -12,8 +12,8 @@ WITH VAR AS (	SELECT
 		0 as dt7, -- sunday
 		0 as dt8, -- holidays
 		0 as dt9, -- holiday extensions
-		'2016-05-10'::date as date_start,
-		'2016-05-12'::date as date_end)
+		'2019-01-12'::date as date_start,
+		'2019-02-08'::date as date_end)
 		
 SELECT 		C.corridor_id, 
 		B.link_dir, 
@@ -37,13 +37,18 @@ INNER JOIN 	here_analysis.corridor_links B USING (link_dir)
 INNER JOIN 	here_analysis.corridors C USING (corridor_id)
 LEFT JOIN	ref.holiday E ON e.dt = A.tx::date
 
-WHERE		A.tx::date >= VAR.date_start 
+WHERE		A.tx::date >= VAR.date_start
 		AND A.tx::date <= VAR.date_end
-		-- AND A.tx NOT IN ('2015-03-16','2015-03-17','2015-03-18','2015-03-19','2015-03-20','2015-04-03','2015-09-07','2015-10-12')
 		AND EXTRACT(dow FROM A.tx) IN (1*dt1,2*dt2,3*dt3,4*dt4,5*dt5,6*dt6,7*dt7)
 		AND CASE WHEN dt8 = 0 THEN E.dt IS NULL END
-		AND C.group_id IN (29,30)
-		
+		AND C.group_id IN (47,48,49,50,51,52,53,54)
+		AND A.tx::date IN (	'2019-01-14','2019-01-15','2019-01-16','2019-01-17','2019-01-18',
+					'2019-01-21','2019-01-22','2019-01-23','2019-01-24','2019-01-25',
+					'2019-02-04','2019-02-05','2019-02-06','2019-02-07','2019-02-08'
+
+		)
+
+
 GROUP BY 	C.corridor_id, 
 		B.link_dir,
 		daterange(VAR.date_start,VAR.date_end),
