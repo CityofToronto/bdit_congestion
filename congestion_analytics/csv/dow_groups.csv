@@ -1,0 +1,8 @@
+group_id,description
+1,Weekday (3 a.m. - 7 p.m.)
+2,M-Th (7 p.m. - 12 a.m.)
+3,Friday (7 p.m. - 12 a.m.)
+4,Tu-Fr (12 a.m. - 3 a.m.)
+5,Monday (12 a.m. - 3 a.m.)
+6,Saturday
+7,Sunday
