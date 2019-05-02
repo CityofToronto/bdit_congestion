@@ -152,3 +152,4 @@ congestion_reporting/r/connect/connect.R
 congestion_reporting/pems/csv/*
 congestion_reporting/pems/summary.csv
 congestion_reporting/sql/test_query.sql
+congestion_analytics/png/*

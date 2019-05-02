@@ -1,4 +1,45 @@
-﻿INSERT INTO 	here_analysis.agg_30min_201412
+﻿INSERT INTO 	here_analysis.agg_30min_201903
+SELECT 		link_dir,
+		COUNT(1) AS num_bins,
+		TIMESTAMP WITHOUT TIME ZONE 'epoch' + INTERVAL '1 second' * floor(extract('epoch' FROM tx) / 1800) * 1800 AS datetime_bin, 
+		1.0/AVG(1.0/pct_50) AS spd_avg
+
+FROM 		here.ta_201903
+GROUP BY 	link_dir,
+		TIMESTAMP WITHOUT TIME ZONE 'epoch' + INTERVAL '1 second' * floor(extract('epoch' FROM tx) / 1800) * 1800;
+
+
+
+INSERT INTO 	here_analysis.agg_30min_201902
+SELECT 		link_dir,
+		COUNT(1) AS num_bins,
+		TIMESTAMP WITHOUT TIME ZONE 'epoch' + INTERVAL '1 second' * floor(extract('epoch' FROM tx) / 1800) * 1800 AS datetime_bin, 
+		1.0/AVG(1.0/pct_50) AS spd_avg
+
+FROM 		here.ta_201902
+GROUP BY 	link_dir,
+		TIMESTAMP WITHOUT TIME ZONE 'epoch' + INTERVAL '1 second' * floor(extract('epoch' FROM tx) / 1800) * 1800;
+
+
+
+INSERT INTO 	here_analysis.agg_30min_201901
+SELECT 		link_dir,
+		COUNT(1) AS num_bins,
+		TIMESTAMP WITHOUT TIME ZONE 'epoch' + INTERVAL '1 second' * floor(extract('epoch' FROM tx) / 1800) * 1800 AS datetime_bin, 
+		1.0/AVG(1.0/pct_50) AS spd_avg
+
+FROM 		here.ta_201901
+GROUP BY 	link_dir,
+		TIMESTAMP WITHOUT TIME ZONE 'epoch' + INTERVAL '1 second' * floor(extract('epoch' FROM tx) / 1800) * 1800;
+
+
+
+
+
+
+
+
+INSERT INTO 	here_analysis.agg_30min_201412
 SELECT 		link_dir,
 		COUNT(1) AS num_bins,
 		TIMESTAMP WITHOUT TIME ZONE 'epoch' + INTERVAL '1 second' * floor(extract('epoch' FROM tx) / 1800) * 1800 AS datetime_bin, 
