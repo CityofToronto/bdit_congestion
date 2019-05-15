@@ -153,3 +153,7 @@ congestion_reporting/pems/csv/*
 congestion_reporting/pems/summary.csv
 congestion_reporting/sql/test_query.sql
 congestion_analytics/png/*
+congestion_analytics/qgs/ttr_map_neighbourhoods.qgs~
+*.qgs~
+*.qgs~
+congestion_analytics/qgs/ttr_map_new.qgs~
