@@ -1,8 +1,10 @@
 ﻿CREATE OR REPLACE VIEW here_analysis.bt_ttr_period_links AS
-SELECT	A.analysis_id,
+SELECT	row_number() OVER (ORDER BY analysis_id) AS id,
+	A.analysis_id,
 	B.mth,
 	C.period_id,
-	avg(B.tt_avg) / avg(A.tt_avg) AS ttr
+	AVG(B.tt_avg) /AVG( A.tt_avg) AS ttr,
+	(avg(B.tt_avg) - avg(A.tt_avg)) / avg(A.tt_avg) AS pct_change
 
 FROM	(
 	SELECT 	analysis_id,
