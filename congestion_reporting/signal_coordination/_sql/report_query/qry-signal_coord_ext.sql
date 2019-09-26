@@ -24,9 +24,9 @@ FROM 		here_analysis.corridor_link_agg A
 INNER JOIN	here_analysis.corridor_links USING (link_dir, corridor_id)
 INNER JOIN	here_analysis.corridors C USING (corridor_id)
 
-WHERE 		C.group_id IN (47,48,49,50,51,52,53,54)
-		AND A.dt = '[2019-01-12,2019-02-08)'
-		AND A.day_type = 496
+WHERE 		C.group_id IN (aa, bb, cc, dd) -- corresponding group IDs
+		AND A.dt = '[yyyy-mm-dd,yyyy-mm-dd)' -- date range
+		AND A.day_type = 496 -- default for weekdays
 GROUP BY 	C.corridor_id, C.corridor_name, C.street, C.direction, C.intersection_start, C.intersection_end, C.length_km, A.hh
 HAVING 		C.num_links = COUNT(*)
 ORDER BY 	C.group_id, C.group_order, A.hh;

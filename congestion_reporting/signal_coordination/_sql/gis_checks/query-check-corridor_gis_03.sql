@@ -1,4 +1,5 @@
-﻿
+﻿-- Check to ensure that grouped corridors are continuous (i.e. should be LineString not MultiLineString)
+
 SELECT 		X.group_id,
 		X.street,
 		X.direction,
@@ -10,7 +11,7 @@ FROM		(	SELECT 		C.group_id,
 			FROM 		here_analysis.corridor_links A
 			INNER JOIN 	here_gis.streets_18_3 B ON LEFT(A.link_dir,-1)::numeric = B.link_id
 			INNER JOIN	here_analysis.corridors C USING (corridor_id)
-			WHERE 		C.group_id IN (47,48,49,50,51,52,53,54)
+			WHERE 		C.group_id IN (aa, bb, cc, dd) -- corresponding group IDs
 			ORDER BY 	C.direction, A.seq
 		) X
 GROUP BY 	X.group_id, X.street, X.direction
