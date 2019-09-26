@@ -2,15 +2,15 @@
 
 **Note: This page should be updated for a more comprehensive overview of the process.**
 
-### Definitions
+## Definitions
 
 **Corridors** - signal-to-signal lengths of road
 
 **Groups** - groupings of corridors that typically make up the entire length of road being re-timed
 
-### Steps
+## Steps
 
-**1. Populate here_analysis.corridors**
+### **1. Populate here_analysis.corridors**
 
 Represents lookup table for all corridors (i.e. signal-to-signal lengths of road)
 
@@ -37,7 +37,7 @@ Represents lookup table for all corridors (i.e. signal-to-signal lengths of road
 `num_links`: Number of HERE links that comprise the corridor
 
 
-**2. Populate here_analysis.corridor_links**
+### **2. Populate here_analysis.corridor_links**
 
 Intermediate table that links `here.ta.link_dir` to `here_analysis.corridors`
 
@@ -53,22 +53,22 @@ Intermediate table that links `here.ta.link_dir` to `here_analysis.corridors`
 
 `tot_distance_km`: total cumulative length of corridor, up to and inclusive of current link
 
-**3. Update links and lengths of `corridors` and `corridor_links` (if manual changes are made)**
+### **3. Update links and lengths of `corridors` and `corridor_links` (if manual changes are made)**
 
 Located [here](_sql/update_table/update-table-corridor_links-links_and_lengths.sql)
 
-**4. Populate `corridor_link_agg`**
+### **4. Populate `corridor_link_agg`**
 
 Weekday query located [here](_sql/load_table/load-table-corridor_link_agg.sql)
 
 Weekend query located [here](_sql/load_table/load-table-corridor_link_agg_wkend.sql)
 
-**5. Run output queries**
+### **5. Run output queries**
 
 Weekday query located [here](_sql/report_query/qry-signal_coord_ext.sql)
 
 Weekend query located [here](_sql/report_query/qry-signal_coord_ext_wkend.sql)
 
-**6. Paste into template**
+### **6. Paste into template**
 
 Example located here: K:\tra\GM Office\Big Data Group\Work\Signal Coordination\2018\GROUP A\Before
