@@ -7,8 +7,8 @@ a.link_length / a.spd_avg_all  * 3.6 AS link_tt_avg_all,
 a.link_length / a.spd_avg_hc  * 3.6 AS link_tt_avg_hc,
 b.length AS seg_length
 FROM congestion.speeds_links_30min_test a
-INNER JOIN congestion.segments_test b USING (segment_id)
-***WHERE segment_id IN (1, 2)
+INNER JOIN congestion.segments_test b 
+USING (segment_id)
 GROUP BY segment_id, link_dir, datetime_bin, link_length, spd_avg_all, spd_avg_hc, b.length
 ORDER BY segment_id, link_dir
 )
