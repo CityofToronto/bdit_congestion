@@ -1,8 +1,8 @@
 CREATE TABLE congestion.metrics_test AS
 
-SELECT *,
+SELECT segment_id, time_bin, num_bins,
 avg_tt / baseline_tt AS tti,
-(pct95_tt - avg_tt)/avg_tt AS bi
+(pct95_tt - avg_tt)/avg_tt AS biff
 
 FROM (
 SELECT a.segment_id, 
