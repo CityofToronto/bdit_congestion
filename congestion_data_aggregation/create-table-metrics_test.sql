@@ -1,4 +1,4 @@
-CREATE TABLE congestion.metrics_test AS
+CREATE TABLE congestion.metrics_v1 AS
 
 SELECT segment_id, time_bin, num_bins,
 avg_tt / baseline_tt AS tti,
@@ -12,8 +12,8 @@ b.seg_length,
 AVG(a.segment_tt_avg_all) AS avg_tt,
 PERCENTILE_CONT (0.95) WITHIN GROUP (ORDER BY a.segment_tt_avg_all ASC) AS pct95_tt,
 b.tt_baseline_10pct_all AS baseline_tt
-FROM congestion.tt_segments_30min_test a
-LEFT JOIN congestion.tt_segments_baseline_test b
+FROM congestion.tt_segments_30min_v1 a
+LEFT JOIN congestion.tt_segments_baseline_v1 b
 USING (segment_id)
 WHERE a.segment_tt_avg_all IS NOT NULL
 GROUP BY segment_id, datetime_bin::time, b.seg_length, b.tt_baseline_10pct_all

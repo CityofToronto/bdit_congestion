@@ -1,4 +1,4 @@
-CREATE TABLE congestion.tt_segments_30min_test AS
+CREATE TABLE congestion.tt_segments_30min_v1 AS
 
 WITH X AS
 (
@@ -6,8 +6,8 @@ SELECT a.segment_id, a.link_dir, a.datetime_bin, a.link_length, a.spd_avg_all, a
 a.link_length / a.spd_avg_all  * 3.6 AS link_tt_avg_all,
 a.link_length / a.spd_avg_hc  * 3.6 AS link_tt_avg_hc,
 b.length AS seg_length
-FROM congestion.speeds_links_30min_test a
-INNER JOIN congestion.segments_test b 
+FROM congestion.speeds_links_30min_v1 a
+INNER JOIN congestion.segments_v1 b 
 USING (segment_id)
 GROUP BY segment_id, link_dir, datetime_bin, link_length, spd_avg_all, spd_avg_hc, b.length
 ORDER BY segment_id, link_dir
