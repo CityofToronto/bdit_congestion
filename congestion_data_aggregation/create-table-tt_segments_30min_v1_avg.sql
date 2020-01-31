@@ -1,3 +1,6 @@
+--returned 23,412,381
+--took 17.5min
+
 CREATE TABLE congestion.tt_segments_30min_v1_avg AS
 
 WITH X AS

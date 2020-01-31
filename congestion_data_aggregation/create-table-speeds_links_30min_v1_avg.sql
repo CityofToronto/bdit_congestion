@@ -1,5 +1,7 @@
 --Testing using `congestion.segment_links_v1` and `congestion.segments_v1`
 --which has 11918 segments and 38336 links
+--took 3 hr 4 min
+--returned 71,697,882 rows
 
 CREATE TABLE congestion.speeds_links_30min_v1_avg AS
 
@@ -26,7 +28,7 @@ LEFT JOIN
 (
 SELECT a.segment_id, a.link_dir, 
 (datetime_bin(b.tx,30)) AS datetime_bin,
-harmeaN(mean) AS spd_avg_hc,
+harmean(mean) AS spd_avg_hc,
 harmean(pct_50) AS spd_med_hc, 
 COUNT (DISTINCT b.tx)  AS count_hc, b.length
 FROM congestion.segment_links_v1 a
