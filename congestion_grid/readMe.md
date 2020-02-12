@@ -26,7 +26,7 @@ To merge Segment A to Segment B and *not* Segment C, we take the azimuth of both
 
 Knowing the degree difference between Segment A & Segment B, and Segment A & Segment C, we can make a sensible choice of merging the segments that has the lower degree difference. 
 
-To order and select best two merging choice for each segment, we use this sql.
+To order and select best two merging choice for each segment, we use this [sql](sql/prepare_merge.sql).
 
 We then used this script using this logic for all segments until there are no avaliable segments for merging. (e.g. only neighbouring segment was used to merge with a segment that has a higher priority)
 ![image](https://user-images.githubusercontent.com/46324452/74369755-e8dc9680-4da3-11ea-9431-e5555e2a64ff.png)
@@ -39,19 +39,20 @@ Future Improvements:
 
 
 ## Partition segments
+Check out this [notebook](segment_partition.ipynb) for code and result comparison for the following methods.
+
 ### Greedy Partitioning
 
 Add next link to a partition until the parition reaches 200m. If the last segment is shorter than 100m, add it to the previous partition.
 
 
 
-
 ### Best Group 
 
-Produces groups of all possible combination of partitions, select the one partition with less error. Since this method is very computatively expensive, we only used it for segments that produces less than 15 million combinations. 
+[Produces groups of all possible combination of partitions](best_group_partition.py), select the one partition with less error. Since this method is very computatively expensive, we only used it for segments that produces less than 15 million combinations. 
 
 ### Simulated Annealing
 
-For segments that do not qualify for using the best group partitioning, they uses the simulated annealing method. Instead of finding all the possible combination, simulated annealing find the optimal "state" from a certain number of iterations. Check out this notebook for a more in depth explaination and examples.
+For segments that do not qualify for using the best group partitioning, they uses the simulated annealing method. Instead of finding all the possible combination, simulated annealing find the optimal "state" from a certain number of iterations. Check out this [notebook](simulated_annealing.ipynb) for a more in depth explaination and examples.
 
 
