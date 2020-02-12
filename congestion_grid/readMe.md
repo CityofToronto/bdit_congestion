@@ -18,12 +18,19 @@ Parameters:
 
 How it works:
 
-In this example, we would want to merge Segment A to Segment B as it is too short. 
-To merge Segment A to Segment B and *not* Segment C, we take the azimuth of both the end and the start of a segment, and calculate the degree difference of those segments to it's neighbouring segments. Knowing the degree difference between Segment A & Segment B, and Segment A & Segment C, we can make a sensible choice of merging the segments that has the lower degree difference. 
+In this example, we would want to merge Segment A to Segment B as it is too short.
+![image](https://user-images.githubusercontent.com/46324452/74369601-a0bd7400-4da3-11ea-9c4a-43834ea80048.png)
+
+To merge Segment A to Segment B and *not* Segment C, we take the azimuth of both the end and the start of a segment, and calculate the degree difference of those segments to it's neighbouring segments.
+![image](https://user-images.githubusercontent.com/46324452/74369643-b2068080-4da3-11ea-87d3-cc576828c5b3.png)
+
+Knowing the degree difference between Segment A & Segment B, and Segment A & Segment C, we can make a sensible choice of merging the segments that has the lower degree difference. 
 
 To order and select best two merging choice for each segment, we use this sql.
 
 We then used this script using this logic for all segments until there are no avaliable segments for merging. (e.g. only neighbouring segment was used to merge with a segment that has a higher priority)
+![image](https://user-images.githubusercontent.com/46324452/74369755-e8dc9680-4da3-11ea-9431-e5555e2a64ff.png)
+
 
 
 Future Improvements:
