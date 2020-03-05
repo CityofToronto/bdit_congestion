@@ -1,4 +1,5 @@
--- new metrics with baseline 10pct for highway 
+-- Used percentile 10th speed for highway as baseline
+-- Metrics table with 2019 data, adjusted mean and median 
 CREATE TABLE congestion.metrics_v4_2019_af_v2 AS
 
 SELECT segment_id, time_bin, num_bins,
