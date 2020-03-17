@@ -1,1 +1,0 @@
--- metrics table for 2019 monthly 
