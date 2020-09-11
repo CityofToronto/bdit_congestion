@@ -1,4 +1,3 @@
-
 /* 
 FUNCTION: generate_citywide_tti_hourly
 PURPOSE: This function produces estimates of a city-wide travel time index (TTI) for every hour of the day, every month
@@ -38,7 +37,7 @@ WITH speed_links AS (
 				(tx >=  _dt AND tx < (  $1 + '1 mon'::interval))
 
 	GROUP BY 	segment_id, link_dir, datetime_bin, length
-	), 
+), 
 	
 /*
 hourly_tti: Produces estimates of the average travel time for each 60-minute bin for each individual segment (segment_id), where at least 80% of the segment (by distance) has observations at the link (link_dir) level
@@ -66,9 +65,9 @@ monthly: Produces estimates of the average travel time for each month for each h
 */
 monthly AS (
 	SELECT		segment_id, 
-				date_trunc('month', datetime_bin) as month, 
-				datetime_bin::time without time zone as time_bin,
-				avg(segment_tt_avg) as segment_tt_avg 
+				date_trunc('month', datetime_bin) AS month, 
+				datetime_bin::time without time zone AS time_bin,
+				avg(segment_tt_avg) AS segment_tt_avg 
 	
 	FROM 		hourly_tti
 
@@ -117,4 +116,4 @@ ORDER BY 		month, time_bin
 $BODY$;
 
 ALTER FUNCTION congestion.generate_citywide_tti_hourly(date)
-    OWNER TO natalie; -- change this to a group user role
+    OWNER TO congestion_admins;
