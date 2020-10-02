@@ -24,17 +24,17 @@ WITH speed_links AS (
 	SELECT 		segment_id, 
 				link_dir,
 				length AS link_length, 
-				datetime_bin(tx, 30) AS datetime_bin,
+				(TIMESTAMP WITHOUT TIME ZONE 'epoch' +
+                    INTERVAL '1 second' * (floor((extract('epoch' from tx)) / 1800) * 1800))::time AS datetime_bin,
 				harmean(mean) AS spd_avg,
-				COUNT(DISTINCT tx)  AS count_hc
+				COUNT(DISTINCT tx)  AS count
 	
 	FROM  		here.ta
-    INNER JOIN 	congestion.segment_links_v5_19_4 USING (link_dir)
+    INNER JOIN 	congestion.segment_links_v5_19_4_tc USING (link_dir)
 	
-	WHERE 		tx <@ '[06:00:00, 23:00:00]'::timerange AND
-				(tx >=  _dt AND tx < (  $1 + '1 day'::interval))
+	WHERE 	    (tx >=  _dt AND tx < (  $1 + '1 day'::interval))
 
-	GROUP BY 	segment_id, link_dir, datetime_bin(tx, 30), length
+	GROUP BY 	segment_id, link_dir, datetime_bin, length
 ), 
 	
 /*
@@ -63,8 +63,8 @@ seg_tti: Produces estimates of the average travel time index (using 10th percent
 */
 seg_tti AS (
 	SELECT 		segment_id, 
-				dt, 
-				time_bin,  
+				datetime_bin::date AS dt, 
+				datetime_bin::time without time zone AS time_bin,  
 				CASE	WHEN highway.segment_id IS NOT NULL 
 							THEN tti.segment_tt_avg/b.tt_baseline_10pct_corr 
 						ELSE
@@ -90,8 +90,11 @@ FROM			seg_tti
 INNER JOIN 		congestion.segments_v5 USING (segment_id)
 INNER JOIN		covid.segment_aadt_final USING (segment_id)
 
+WHERE 		    time_bin <@ '[06:00:00, 23:00:00]'::timerange
+
 GROUP BY 		dt, time_bin
 ORDER BY 		dt, time_bin
+
 
 $BODY$;
 
