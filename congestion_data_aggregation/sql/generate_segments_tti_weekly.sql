@@ -7,6 +7,8 @@ INPUTS: _dt: first day of the week
 
 -- DROP FUNCTION congestion.generate_segments_tti_weekly(date);
 
+-- FUNCTION: congestion.generate_segments_tti_weekly(date)
+
 CREATE OR REPLACE FUNCTION congestion.generate_segments_tti_weekly(
 	_dt date)
     RETURNS void
@@ -14,9 +16,7 @@ CREATE OR REPLACE FUNCTION congestion.generate_segments_tti_weekly(
 
     COST 100
     VOLATILE SECURITY DEFINER 
-    
 AS $BODY$
-
 
 /*
 speed_links: Produces estimates of the average speed for each 30-minute bin for each individual link (link_dir)
@@ -26,7 +26,7 @@ WITH speed_links AS (
 				link_dir,
 				length AS link_length, 
 				(TIMESTAMP WITHOUT TIME ZONE 'epoch' +
-                    INTERVAL '1 second' * (floor((extract('epoch' from tx)) / 1800) * 1800))::time AS datetime_bin,
+                    INTERVAL '1 second' * (floor((extract('epoch' from tx)) / 1800) * 1800)) AS datetime_bin,
 				harmean(mean) AS spd_avg,
 				COUNT (DISTINCT tx)  AS count
     
@@ -38,7 +38,7 @@ WITH speed_links AS (
             	date_part('isodow'::text, tx::date) < 6 AND
 			    (tx < _dt AND tx >= (  _dt - '1 week'::interval))
     
-	GROUP BY segment_id, link_dir, datetime_bin, length
+	GROUP BY    segment_id, link_dir, datetime_bin, length
 ),
 
 /*
@@ -48,9 +48,9 @@ tt_30 AS (
     SELECT 		segment_id, 
                 datetime_bin, 
 				CASE WHEN date_part('isodow', datetime_bin)::int <@ '[1,6)'::int4range
-                          THEN 'Weekdays'
+                          THEN 'Weekday'
                      ELSE
-                        'Weekends'
+                        'Weekend'
                 END as day_type,
                 CASE WHEN SUM(link_length) >= 0.8 * b.length 
                           THEN SUM(link_length / spd_avg  * 3.6 ) * b.length / SUM(link_length)
@@ -72,7 +72,7 @@ weekly_tt AS (
     SELECT 		a.segment_id,
             	a.datetime_bin::time without time zone AS time_bin,
             	count(a.datetime_bin) AS num_bins,
-            	date_trunc('week'::text, a.datetime_bin::date::timestamp with time zone) AS week,
+            	date_trunc('week'::text, a.datetime_bin) AS week,
                 day_type, 
             	b.seg_length,
             	avg(a.segment_tt_avg) AS avg_tt,
@@ -89,13 +89,13 @@ weekly_tt AS (
     
     GROUP BY 	a.segment_id, week, highway.segment_id, time_bin, day_type,
 				b.seg_length, b.tt_baseline_10pct_corr, b.tt_baseline_25pct_corr
-    ORDER BY    a.segment_id, (a.datetime_bin::time without time zone)
+    ORDER BY    a.segment_id, week, time_bin
 )
 
 /*
 Final Output: Inserts an estimate of the segment TTI into congestion.segments_tti_weekly
 */
-INSERT INTO congestion.segments_weekly_tti       
+INSERT INTO     congestion.segments_tti_weekly       
 SELECT 			tti.segment_id,
                 tti.week,
                 tti.day_type,

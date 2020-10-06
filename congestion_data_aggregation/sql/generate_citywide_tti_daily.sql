@@ -25,14 +25,15 @@ WITH speed_links AS (
 				link_dir,
 				length AS link_length, 
 				(TIMESTAMP WITHOUT TIME ZONE 'epoch' +
-                    INTERVAL '1 second' * (floor((extract('epoch' from tx)) / 1800) * 1800))::time AS datetime_bin,
+                    INTERVAL '1 second' * (floor((extract('epoch' from tx)) / 1800) * 1800)) AS datetime_bin,
 				harmean(mean) AS spd_avg,
 				COUNT(DISTINCT tx)  AS count
 	
 	FROM  		here.ta
     INNER JOIN 	congestion.segment_links_v5_19_4_tc USING (link_dir)
 	
-	WHERE 	    (tx >=  _dt AND tx < (  $1 + '1 day'::interval))
+	WHERE 	    (tx >=  _dt AND tx < _dt + INTERVAL '1 day' )
+
 
 	GROUP BY 	segment_id, link_dir, datetime_bin, length
 ), 

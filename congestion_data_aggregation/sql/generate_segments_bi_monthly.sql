@@ -34,7 +34,7 @@ WITH speed_links AS (
     
     WHERE 		hol.dt IS NULL AND 
                 date_part('isodow'::text, tx::date) < 6 AND 
-                (tx >= _dt AND tx < ( _dt + '1 mon'::interval))
+                (tx < _dt AND tx >= ( _dt - '1 mon'::interval))
     
     GROUP BY 	segment_id, link_dir, datetime_bin, link_length),
 
@@ -59,20 +59,20 @@ seg_tt AS (
 /*
 Final output: Inserts an estimate of the segment buffer index (BI) into congestion.segments_bi_monthly, where at least 80% of the segments (by distance) has observations at the link (link_id) level   
 */
-INSERT INTO congestion.segments_bi_monthly
+INSERT INTO     congestion.segments_bi_monthly
     
-SELECT 		a.segment_id,
-            date_trunc('month', datetime_bin) AS month,
-            datetime_bin::time without time zone AS time_bin,
-            count(a.datetime_bin) AS num_bins,
-            avg(a.segment_tt_avg) AS avg_tt,
-			percentile_cont(0.95::double precision) WITHIN GROUP (ORDER BY a.segment_tt_avg) AS pct_95,
-            (percentile_cont(0.95::double precision) WITHIN GROUP (ORDER BY a.segment_tt_avg) - avg(a.segment_tt_avg))/ avg(a.segment_tt_avg) AS bi
+SELECT 		    a.segment_id,
+                date_trunc('month', datetime_bin) AS month,
+                datetime_bin::time without time zone AS time_bin,
+                count(a.datetime_bin) AS num_bins,
+                avg(a.segment_tt_avg) AS avg_tt,
+                percentile_cont(0.95::double precision) WITHIN GROUP (ORDER BY a.segment_tt_avg) AS pct_95,
+                (percentile_cont(0.95::double precision) WITHIN GROUP (ORDER BY a.segment_tt_avg) - avg(a.segment_tt_avg))/ avg(a.segment_tt_avg) AS bi
+
+FROM 		    seg_tt a
     
-FROM 		seg_tt a
-    
-GROUP BY 	a.segment_id,  month, time_bin
-ORDER BY 	a.segment_id, month, time_bin
+GROUP BY 	    a.segment_id,  month, time_bin
+ORDER BY 	    a.segment_id, month, time_bin
 
 
 $BODY$;

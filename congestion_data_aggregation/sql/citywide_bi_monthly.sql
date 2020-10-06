@@ -21,3 +21,11 @@ WHERE 	    	time_bin <@ '[06:00:00,23:00:00)'::timerange
 
 GROUP BY		month, time_bin
 ORDER BY 		month, time_bin
+
+
+ALTER TABLE congestion.citywide_bi_monthly
+    OWNER TO congestion_admins;
+
+CREATE UNIQUE INDEX citywide_bi_monthly_month_time_bin_unique
+    ON congestion.citywide_bi_monthly USING btree
+    (month, time_bin)
