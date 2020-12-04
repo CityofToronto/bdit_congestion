@@ -35,7 +35,6 @@ WITH speed_links AS (
 	LEFT JOIN 	ref.holiday hol ON hol.dt = tx::date
     
     WHERE 		hol.dt IS NULL AND 
-            	date_part('isodow'::text, tx::date) < 6 AND
 			    (tx < _dt AND tx >= (  _dt - '1 week'::interval))
     
 	GROUP BY    segment_id, link_dir, datetime_bin, length
