@@ -2,7 +2,6 @@
 -- that will be used in creating the congestion network 2.0
 -- we will than find the here nodes that are closest to these chosen geometries 
 
-
 CREATE MATERIALIZED VIEW congestion.selected_intersections AS 
 -- first select the centreline that we are interested
 -- aka minor arterial and above
@@ -18,20 +17,21 @@ With interested_class AS (
 						 'Minor Arterial Ramp'))
 -- grab all nodes that make up the fcode we want
 , interested_int as (
-	select geo_id, lf_name, fnode as int_id, geom
+	select fnode as int_id
 	from interested_class
 	union all
-	select geo_id, lf_name, tnode as int_id, geom
+	select tnode as int_id
 	from interested_class)
 	
 -- select intersections that were used more or equal 3 times
 -- aka intersections
+-- and 1 time, aka the end of the road
 , intersection_int as (
-	select distinct int_id
+	select int_id
 	from interested_int
 	group by int_id
-	having count(1) >=3)
-
+	having count(int_id) >=3 or count(int_id) = 1) 
+	
 -- px with either no int_id or too updated of int_id 
 , other_px as (
 	select node_id, px, geom 
@@ -69,6 +69,9 @@ from all_int
 inner join interested_class on ST_within(all_int.geom, b_geom); 
 
 COMMENT ON materialized view congestion.selected_intersections IS 'Centreline intersections and traffic signals selected for congestion network routing. Created on 2022-05-17. '
+
+
+
 
 
 
