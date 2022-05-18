@@ -64,11 +64,15 @@ With interested_class AS (
 -- selecting only the intersections within a 10m buffer of centreline 
 -- mainly to get rid of traffic signals that are not on 
 -- the fcode that we want
-select all_int.* 
+select distinct int_id, px, all_int.geom
 from all_int
 inner join interested_class on ST_within(all_int.geom, b_geom); 
 
 COMMENT ON materialized view congestion.selected_intersections IS 'Centreline intersections and traffic signals selected for congestion network routing. Created on 2022-05-17. '
+
+
+
+
 
 
 
