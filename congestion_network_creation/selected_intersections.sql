@@ -1,6 +1,6 @@
 -- This mat view stores the geometry, centreline intersection (int_id), and traffic signal id (px)
 -- that will be used in creating the congestion network 2.0
--- we will than find the here nodes that are closest to these chosen geometries 
+-- we will than find the here nodes that represents these chosen geometries 
 
 CREATE MATERIALIZED VIEW congestion.selected_intersections AS 
 -- first select the centreline that we are interested
@@ -10,12 +10,10 @@ With interested_class AS (
 	ST_transform(ST_buffer(ST_transform(geom, 2952), 10), 4326) as b_geom
 	from gis.centreline 
 	where fcode_desc in ('Expressway', 
-						 'Expressway Ramp', 
 						 'Major Arterial', 
-						 'Major Arterial Ramp',
-						 'Minor Arterial',
-						 'Minor Arterial Ramp'))
--- grab all nodes that make up the fcode we want
+						 'Minor Arterial'))
+                         
+-- grab all nodes that make up the centrelines we want
 , interested_int as (
 	select fnode as int_id
 	from interested_class
@@ -32,11 +30,12 @@ With interested_class AS (
 	group by int_id
 	having count(int_id) >=3 or count(int_id) = 1) 
 	
--- px with either no int_id or too updated of int_id 
+-- selection of px with either no int_id or too updated of int_id or at midblocks
 , other_px as (
 	select node_id, px, geom 
 	from gis.traffic_signal
-	where midblock_route is null and node_id != 0 and node_id != 30121659)
+	where (midblock_route is not null or node_id = 0) -- including midblock pxs 
+            and node_id != 30121659) -- excluding the one with too update of int_id
 	
 -- select all intersections 
 , selected_int as (
