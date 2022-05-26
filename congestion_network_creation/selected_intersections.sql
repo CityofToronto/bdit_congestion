@@ -30,12 +30,13 @@ With interested_class AS (
 	group by int_id
 	having count(int_id) >=3 or count(int_id) = 1) 
 	
--- selection of px with either no int_id or too updated of int_id or at midblocks
+-- selection of px with int_ids that doesnt match with our version of intersections
+-- which can include midblocks and too updated int_id 
 , other_px as (
 	select node_id, px, geom 
 	from gis.traffic_signal
-	where (midblock_route is not null or node_id = 0) -- including midblock pxs 
-            and node_id != 30121659) -- excluding the one with too update of int_id
+    inner join gis.centreline_intersections on node_id = int_id
+	where int_id is null
 	
 -- select all intersections 
 , selected_int as (
