@@ -33,10 +33,10 @@ With interested_class AS (
 -- selection of px with int_ids that doesnt match with our version of intersections
 -- which can include midblocks and too updated int_id 
 , other_px as (
-	select node_id, px, geom 
+	select node_id, px, traffic_signal.geom 
 	from gis.traffic_signal
-    inner join gis.centreline_intersections on node_id = int_id
-	where int_id is null
+    inner join gis.centreline_intersection on node_id = int_id
+	where int_id is null)
 	
 -- select all intersections 
 , selected_int as (
