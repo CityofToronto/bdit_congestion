@@ -1,5 +1,8 @@
+-- Final here nodes table for routing
+
 CREATE TABLE congestion.network_nodes AS 
 
+-- Use 50m buffer of selected centreline intersections
 WITH cent_nodes AS (
 	SELECT 	int_id, 
 			px, 
@@ -7,6 +10,7 @@ WITH cent_nodes AS (
 	FROM 	congestion.selected_intersections
 )
 
+-- To find the selected here nodes that are within that buffer
 SELECT 		node_id, geom
 FROM 		congestion.selected_nodes
 INNER JOIN 	cent_nodes on ST_within(geom, b_geom);
