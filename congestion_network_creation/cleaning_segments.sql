@@ -60,3 +60,11 @@ from congestion.network_routing_results)
 
 select * from temp
 inner join dups using (link_uid)
+
+-- Find node_ids that were not used in the network or 
+-- nodes that were used but not in network_nodes
+select * from congestion.network_nodes
+right join (select start_vid node_id from congestion.network_segments
+		  union 
+		   select end_vid from congestion.network_segments )a using (node_id)
+where network_nodes.node_id is null 
