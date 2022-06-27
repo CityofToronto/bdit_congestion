@@ -35,38 +35,42 @@ With interested_class AS (
 , other_px as (
 	select node_id, px, traffic_signal.geom 
 	from gis.traffic_signal
-    inner join gis.centreline_intersection on node_id = int_id
-	where int_id is null)
+    left join gis.centreline_intersection on node_id = int_id
+	where int_id is null )
 	
 -- select all intersections 
 , selected_int as (
 -- intersections that are minor arterial and above
-	select int_id, null as px
+-- and their equivalent px if exist 
+	select int_id, px
 	from intersection_int
-	union 
--- intersections that have traffic signals 	
-	select node_id, px
+	left join gis.traffic_signal on node_id = int_id
+	union
+-- traffic signals with int_ids that are 
+-- in the current centreline intersection version
+	(select node_id, px
 	from gis.traffic_signal
-	except 
--- except traffic signals that are in other_px cte
-	select node_id, px
-	from other_px)
+	except
+	select node_id, px 
+	from other_px))
 
--- join the selected int and traffic signals together
+-- join the selected int and other traffic signals together
 , all_int as (
 	select inte.int_id, px, inte.geom
 	from selected_int
 	inner join gis.centreline_intersection inte using (int_id)
-	union 
+	union all
 	select null as int_id, px, other_px.geom
 	from other_px)
 
 -- selecting only the intersections within a 10m buffer of centreline 
 -- mainly to get rid of traffic signals that are not on 
 -- the fcode that we want
-select distinct int_id, px, all_int.geom
-from all_int
-inner join interested_class on ST_within(all_int.geom, b_geom); 
+select distinct int_id, 
+				px, 
+				all_int.geom
+from   			all_int
+inner join 		interested_class on ST_within(all_int.geom, b_geom); 
 
 COMMENT ON materialized view congestion.selected_intersections IS 'Centreline intersections and traffic signals selected for congestion network routing. Created on 2022-05-17. '
 
