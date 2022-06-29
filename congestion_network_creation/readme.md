@@ -81,6 +81,7 @@ Intermediate Table
 - analysis on how things change
 - backfill stuff
 - maybe a lookup between old and new network
+- audit table for when the base segment network changes (e.g. new roads)
 
 ## 5. Documentation
 
