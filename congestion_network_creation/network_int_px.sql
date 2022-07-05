@@ -20,3 +20,9 @@ order by dist desc;
 
 COMMENT ON TABLE congestion.network_int_px_21_1
     IS 'Lookup table containing nodes used in routing network and its equivalent centreline intersection id and px. Based on 21_1 map version nodes. ';
+    
+    
+-- Ended up deleting matched nodes and ints where the distance between them were more than 25m
+-- Next time should use a buffer when matching nodes to ints
+DELETE FROM congestion.network_int_px_21_1
+where dist > 25
