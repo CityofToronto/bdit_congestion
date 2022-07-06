@@ -8,7 +8,7 @@ CREATE MATERIALIZED VIEW congestion.selected_intersections AS
 With interested_class AS (
 	select geo_id, lf_name, fnode, tnode, fcode_desc, geom, 
 	ST_transform(ST_buffer(ST_transform(geom, 2952), 10), 4326) as b_geom
-	from gis.centreline 
+	from gis.centreline_20220705 
 	where fcode_desc in ('Expressway', 
 						 'Major Arterial', 
 						 'Minor Arterial'))
@@ -35,7 +35,7 @@ With interested_class AS (
 , other_px as (
 	select node_id, px, traffic_signal.geom 
 	from gis.traffic_signal
-    left join gis.centreline_intersection on node_id = int_id
+    left join gis.centreline_intersection_20220705 on node_id = int_id
 	where int_id is null )
 	
 -- select all intersections 
@@ -58,7 +58,7 @@ With interested_class AS (
 , all_int as (
 	select inte.int_id, px, inte.geom
 	from selected_int
-	inner join gis.centreline_intersection inte using (int_id)
+	inner join gis.centreline_intersection_20220705 inte using (int_id)
 	union all
 	select null as int_id, px, other_px.geom
 	from other_px)
