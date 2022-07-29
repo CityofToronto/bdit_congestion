@@ -68,3 +68,43 @@ right join (select start_vid node_id from congestion.network_segments
 		  union 
 		   select end_vid from congestion.network_segments )a using (node_id)
 where network_nodes.node_id is null 
+
+
+-- Insert re-route result to network_links and network_segments 
+WITH intersections as(
+	SELECT array_agg(node_id::int) AS ints
+	FROM congestion.network_nodes xsections
+	where node_id in (30342354,30342557)
+), results AS(
+	SELECT results.*, routing_grid.id, routing_grid.geom, link_dir
+	FROM intersections
+	, LATERAL pgr_dijkstra('SELECT id, source::int, target::int,
+						   st_length(st_transform(geom, 2952)) as cost
+						   FROM here.routing_streets_21_1 routing_grid
+						   ',
+				ints, ints) results
+	INNER JOIN here.routing_streets_21_1 routing_grid ON id = edge
+)
+insert into congestion.network_links_21_1
+SELECT 127 as segment_id, start_vid, end_vid, link_dir, s.geom,  cost
+FROM (select distinct path_seq, start_vid, end_vid, edge, node, cost, agg_cost, id, geom, link_dir  from results)s
+LEFT OUTER JOIN congestion.network_nodes ON node = node_id AND node != start_vid
+WHERE not start_vid = 30342557;
+
+insert into  congestion.network_segments
+select segment_id, start_vid, end_vid, ST_linemerge(ST_union(geom)) , sum(length), false
+from  congestion.network_links_21_1 
+where segment_id = 127
+group by segment_id, start_vid, end_vid;
+
+
+-- Check if there are segments in network_segments but not in 
+-- network_links_21_1 and vice versa
+
+select distinct segment_id from congestion.network_links_21_1 a
+right join congestion.network_segments b using (segment_id)
+where a.segment_id is null ;
+
+select distinct segment_id from congestion.network_links_21_1 a
+left join congestion.network_segments b using (segment_id)
+where b.segment_id is null ;
