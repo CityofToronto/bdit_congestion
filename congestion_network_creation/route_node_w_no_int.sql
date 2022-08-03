@@ -34,3 +34,25 @@ CROSS JOIN LATERAL pgr_dijkstra('SELECT id, source::int, target::int, cost
 								FALSE)
 inner join gis.centreline_20220705 a on geo_id = edge
 group by start_vid, end_vid, start_int, end_int, first_seg, sec_seg
+-------------------------------------------------------------------------------------------------------
+-- for the ones that needs to be inserted manually 
+-- due to crossing multiple nodes with no matches
+-- or the routed result is incorrect
+INSERT INTO  congestion.segments_centreline_routed_21_1_missing 
+with temp as (
+select a.node_id as start_vid, a.int_id as start_int, b.node_id as end_vid, b.int_id as end_int
+from congestion.network_int_px_21_1 a , 
+	 congestion.network_int_px_21_1 b
+where a.node_id =  30454141 and b.node_id = 30453782)
+
+select ARRAY[524, 6144, 2694] as segment_set, start_vid, end_vid, start_int, end_int, 
+		array_agg(geo_id) as geo_id_set, 
+		ST_linemerge(ST_union(a.geom)) as geom
+from  temp 
+cross join lateral pgr_dijkstra('SELECT id, source::int, target::int, cost
+				 	   			FROM gis.centreline_routing_20220705_undirected', 
+								start_int, 
+								end_int, 
+								FALSE)
+inner join gis.centreline_20220705 a on geo_id = edge
+group by start_vid, end_vid, start_int, end_int
