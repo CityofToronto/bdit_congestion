@@ -4,7 +4,7 @@ CREATE TABLE congestion.network_baseline AS
 WITH link_60_tt AS (
 	SELECT 		segment_id,
 				link_dir,
-				datetime_bin(tx, 60)A datetime_bin,
+				datetime_bin(tx, 60) AS datetime_bin,
 				avg(links.length * 0.001/ mean * 3600) AS link_tt,
 				links.length
 				
