@@ -1,5 +1,7 @@
 -- Routes centreline using int_id <-> node_id look up table
 -- results in centreline that makes up each segment
+--SELECT 5740
+--Query returned successfully in 30 min 36 secs.
 
 CREATE TABLE congestion.segments_centreline_routed_21_1 AS 
 
