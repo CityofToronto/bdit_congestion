@@ -15,7 +15,7 @@ WITH speed_links AS (
 				harmean(mean) AS spd_avg,
 				sum(sample_size)::int as sample
     
-    FROM  		here_staging.ta
+    FROM  		here.ta
     INNER JOIN 	congestion.network_links_21_1 links USING (link_dir)
     WHERE 		(dt >= '2019-10-01' AND dt < '2019-10-02') and segment_id = 1
     
