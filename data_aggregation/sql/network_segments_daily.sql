@@ -1,7 +1,7 @@
 -- Parent table structure
 CREATE TABLE IF NOT EXISTS congestion.network_segments_daily
 (
-    segment_id text NOT NULL,
+    segment_id integer NOT NULL,
 	dt date NOT NULL,
 	hr numeric,
 	tt numeric NOT NULL, 
