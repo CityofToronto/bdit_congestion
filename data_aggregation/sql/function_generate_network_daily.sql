@@ -17,7 +17,7 @@ WITH speed_links AS (
     
     FROM  		here_staging.ta
     INNER JOIN 	congestion.network_links_21_1 links USING (link_dir)
-    WHERE 		(dt >= _dt AND dt < _dt + interval '1 day') and segment_id = 1
+    WHERE 		(dt >= _dt AND dt < _dt + interval '1 day') 
     
 	GROUP BY    segment_id, link_dir, dt, hr, links.length
 ),
