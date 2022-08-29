@@ -15,9 +15,9 @@ WITH speed_links AS (
 				harmean(mean) AS spd_avg,
 				sum(sample_size)::int as sample
     
-    FROM  		here.ta
+    FROM  		here_staging.ta
     INNER JOIN 	congestion.network_links_21_1 links USING (link_dir)
-    WHERE 		(dt >= '2019-10-01' AND dt < '2019-10-02') and segment_id = 1
+    WHERE 		(dt >= _dt AND dt < _dt + interval '1 day') and segment_id = 1
     
 	GROUP BY    segment_id, link_dir, dt, hr, links.length
 ),
@@ -70,6 +70,5 @@ ALTER FUNCTION congestion.generate_network_daily(date)
 
 GRANT EXECUTE ON FUNCTION congestion.generate_network_daily(date) TO congestion_admins;
 GRANT EXECUTE ON FUNCTION congestion.generate_network_daily(date) TO congestion_bot;
-
 COMMENT ON FUNCTION congestion.generate_network_daily(date)
     IS 'Function that aggregate network segments hourly travel time and travel time index for each day. Runs everyday through an airflow process.';
