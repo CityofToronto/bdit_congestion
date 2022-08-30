@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS congestion.network_segments_monthly
 (
     segment_id integer NOT NULL,
 	mth date NOT NULL,
-	time_bin integer NOT NULL,
+	hr integer NOT NULL,
 	day_type text,
 	tt numeric NOT NULL, 
     tti numeric NOT NULL,
