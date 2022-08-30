@@ -13,7 +13,7 @@ WITH speed_links AS (
 				dt, 
 				extract(hour from tod)::int AS hr,
 				harmean(mean) AS spd_avg,
-				sum(sample_size)::int as sample
+				COUNT(tx)::int as num_bin
     
     FROM  		here_staging.ta
     INNER JOIN 	congestion.network_links_21_1 links USING (link_dir)
@@ -40,7 +40,7 @@ tt_hr AS (
 					ELSE
 						baseline_25pct
 				END AS baseline_tt,
-				sum(sample) as sample
+				sum(num_bin) as num_bin
     
     FROM 		speed_links
     INNER JOIN 	congestion.network_segments USING (segment_id)
@@ -59,7 +59,7 @@ SELECT 			segment_id,
                 hr,
                 round(segment_avg_tt::numeric, 2) as tt,
                 round(segment_avg_tt / baseline_tt::numeric, 2) AS tti, 
-				sample
+				num_bin
 FROM 			tt_hr
 WHERE 			segment_avg_tt IS NOT NULL
 
