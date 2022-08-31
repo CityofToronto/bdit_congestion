@@ -5,8 +5,12 @@ CREATE TABLE IF NOT EXISTS congestion.network_segments_monthly
 	mth date NOT NULL,
 	hr integer NOT NULL,
 	day_type text,
-	tt numeric NOT NULL, 
-    tti numeric NOT NULL,
+	avg_tt numeric NOT NULL, 
+	median_tt numeric NOT NULL,
+	pct_85_tt numeric NOT NULL,
+	min_tt numeric NOT NULL,
+	max_tt numeric NOT NULL,
+	std_dev numeric NOT NULL,
 	num_bins integer  NOT NULL
 ) PARTITION BY RANGE (mth);
 
