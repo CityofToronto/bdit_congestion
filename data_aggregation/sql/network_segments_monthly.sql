@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS congestion.network_segments_monthly
 	avg_tt numeric NOT NULL, 
 	median_tt numeric NOT NULL,
 	pct_85_tt numeric NOT NULL,
+	pct_95_tt numeric NOT NULL,
 	min_tt numeric NOT NULL,
 	max_tt numeric NOT NULL,
 	std_dev numeric NOT NULL,
