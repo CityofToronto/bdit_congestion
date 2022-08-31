@@ -8,7 +8,7 @@ AS $BODY$
 DECLARE 
 	startdate DATE;
 	enddate DATE;
-	basetablename TEXT := 'network_segments_monthly';
+	basetablename TEXT := 'network_segments_monthly_';
 	tablename TEXT;
 BEGIN
 

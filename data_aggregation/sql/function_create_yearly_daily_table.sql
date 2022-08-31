@@ -8,7 +8,7 @@ AS $BODY$
 DECLARE 
 	startdate DATE;
 	enddate DATE;
-	basetablename TEXT := 'network_segments_daily';
+	basetablename TEXT := 'network_segments_daily_';
 	tablename TEXT;
 BEGIN
 
