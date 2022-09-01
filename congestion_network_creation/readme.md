@@ -32,9 +32,11 @@ Other than using the congestion network for congestion monitoring purposes, we h
 Network definition: 
 
 - Segments created from intersection to intersection
-    - Minor arterial and above intersections
-    - PXs
-- Use roads that are Minor Arterial and Above
+- Intersections: 
+    - Minor arterial, Major Arterials, and Expressway intersections based on the centreline intersection layer
+    - Traffic signals 
+- Roads: 
+    - Minor Arterial, Major Arterials, and Expressway based on the centreline layer
 
 Note: Make sure all tables have descriptive comments including what map version its using and what ta table is updated with this map version
 
@@ -57,11 +59,35 @@ Intermediate Table
 
 - Citywide TTI
     - Daily, 1 hour (Partitioned Yearly)
-- Segment level TTI and TT
-    - Daily TTI and TT, 1 hour (Partitioned Monthly)
-    - Weekly TTI and TT
-    - Monthly TTI and TT and BI, percentiles, max, mins, 1 hour (Partitioned Yearly)
-    - + Peak Period Aggregations (AM Peak, PM Peak, and Weekend Midday)
+- Segment Level Travel Times
+    - Daily Travel Times, 1 hour (Partitioned Monthly)
+    - Table structure:
+
+    | column_name | type    | description                                 | example    |
+    |-------------|---------|---------------------------------------------|------------|
+    | segment_id  | integer | Unique identifier of each segment           | 1029       |
+    | dt          | date    | Date in YYYY-MM-DD format                   | 2020-03-07 |
+    | hr          | integer | Hour of the day                                        |      8      |
+    | tt          | numeric | Average Travel Time on this   segment in seconds   | 20.13      |
+    | num_bins    | integer | The total number of 5-min bins   used for aggregating travel times for this segment  | 23         |
+    - Monthly Travel times,1 hour (Partitioned Yearly)
+    - Table structure:
+
+    | column_name | type    | description                                                                                         | example    |
+    |-------------|---------|-----------------------------------------------------------------------------------------------------|------------|
+    | segment_id  | integer | Unique identifier of each segment                                                                   | 1029       |
+    | mth         | date    | Month in YYYY-MM-DD format                                                                          | 03/17/2020 |
+    | hr          | integer | Hour of the day                                                                                     | 8          |
+    | day_type    | text    | Identifies weekends and weekdays                                                                    | Weekday    |
+    | avg_tt      | numeric | Average Travel Time on this   segment in seconds over each month                                    | 13.25      |
+    | median_tt   | numeric | Median Travel Time on this   segment in seconds over each month                                     | 14.2       |
+    | pct_85_tt   | numeric | The 85th Percentile Travel Time on this segment in seconds over each   month                        | 16.2       |
+    | pct_95_tt   | numeric | The 95th Percentile Travel Time on this segment in seconds over each   month                        | 17.22      |
+    | min_tt      | numeric | Minimum Travel Time on this   segment in seconds over each month                                    | 8.13       |
+    | max_tt      | numeric | Maximum Travel Time on this   segment in seconds over each month                                    | 20.38      |
+    | std_dev     | numeric | Standard Deviation of Travel   Times on this segment in seconds over each month                     | 2.34       |
+    | num_bins    | integer | The total number of 5-min bins   used for aggregating travel times for this segment over each month | 50         |
+
 
 # 3. Automation
 
