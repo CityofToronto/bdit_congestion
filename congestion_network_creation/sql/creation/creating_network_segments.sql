@@ -1,5 +1,4 @@
-create table congestion.network_segments as 
-
+-- Creating network_segments from network_links_21_1 
 select  segment_id, 
         start_vid, 
         end_vid,
@@ -10,5 +9,3 @@ from congestion.network_links_21_1
 group by segment_id, start_vid, end_vid
 order by segment_id, start_vid, end_vid;
 
-COMMENT ON TABLE congestion.network_segments IS 
-'Containing all the segments in the congestion network.';
