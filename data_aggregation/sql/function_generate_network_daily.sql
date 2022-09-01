@@ -15,7 +15,7 @@ WITH speed_links AS (
 				harmean(mean) AS spd_avg,
 				COUNT(tx)::int as num_bin
     
-    FROM  		here_staging.ta
+    FROM  		here.ta
     INNER JOIN 	congestion.network_links_21_1 links USING (link_dir)
     WHERE 		(dt >= _dt AND dt < _dt + interval '1 day') 
     
@@ -58,7 +58,6 @@ SELECT 			segment_id,
                 dt,
                 hr,
                 round(segment_avg_tt::numeric, 2) as tt,
-                round(segment_avg_tt / baseline_tt::numeric, 2) AS tti, 
 				num_bin
 FROM 			tt_hr
 WHERE 			segment_avg_tt IS NOT NULL
