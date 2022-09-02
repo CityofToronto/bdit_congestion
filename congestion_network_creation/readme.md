@@ -43,8 +43,29 @@ Note: Make sure all tables have descriptive comments including what map version 
 Output Tables:
 
 - Segments table: `congestion.network_segments`
+
+| column_name  | type     | description                                     | example    |
+|--------------|----------|-------------------------------------------------|------------|
+| segment_id   | integer  | unique identifier of each segment               | 3216       |
+| start_vid    | integer  | here node_id that is the source of the segment  | 2516521    |
+| end_vid      | integer  | here node_id that is the target of the segment  | 2516523    |
+| geom         | geometry | geometry of the segment in epsg:   4326         |            |
+| total_length | numeric  | total length of the segment in metres           | 1050       |
+| highway      | boolean  | whether this segment is a highway               | FALSE      |
+| direction    | text     | cardinal direction of the segment               | Northbound |
+
 - Segments and here links look up table: `congestion.network_segments_links`
-- Routing network: `congestion.routing_network`, and `congestion.routing_network_nodes`
+
+| column_name | type     | description                                      | example    |
+|-------------|----------|--------------------------------------------------|------------|
+| segment_id  | integer  | unique identifier of each segment                | 3216       |
+| start_vid   | integer  | here node_id that is the source of the link_dir  | 2516521    |
+| end_vid     | integer  | here node_id that is the target of the link_dir  | 2516523    |
+| link_dir    | text     | here link_dir that make up the segment           | 123121234F |
+| geom        | geometry | geometry of the link_dir in epsg:   4326         |            |
+| length      | numeric  | length of the link_dir in metres                 | 1050       |
+
+- Routing network: `congestion.routing_network`, and `congestion.network_nodes`
 
 # 2. Creating the tables
 
