@@ -29,6 +29,8 @@ The yearly update will include creating a new segment_links table for the curren
 
 7) Update baseline travel times for new segments
 
+6) Update centreline conflations for nodes and segment lookup table
+
 ## How to check changes
 
 ### Audit Tables
