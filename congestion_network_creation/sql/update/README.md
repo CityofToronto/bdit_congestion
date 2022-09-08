@@ -12,24 +12,26 @@ The yearly update will include creating a new segment_links table for the curren
 
 ## Steps to update the network:
 
-1) Check if there is new traffic signal installed 
+1) Check if there is new traffic signal installed by looking at the activation date
 
-2) Check what has changed in the new map version using [this SQL](/sql/update/find_changes)
+2) Check what has changed in the new map version using [this SQL](find_changes.sql)
     - `congestion.network_nodes`
     - `congestion.network_links_xx_x`
     - `congestion.network_segments`
 
-3) Update network nodes table using  [this SQL](/sql/update/update_nodes.sql)
+3) Update network nodes table using  [this SQL](update_nodes.sql)
 
-4) Create new network_link table by routing the start and end vid of changed segment_ids using [this SQL](/sql/update/update_links.sql)
+4) Create new network_link table by routing the start and end vid of changed segment_ids using [this SQL](update_links.sql)
 
-5) Retire outdated segments to table `congestion.network_segments_retired`
+5) Retire outdated segments to table `congestion.network_segments_retired` using [this]
 
-6) Add new segments if needed
+6) Add new segments if needed using [this SQL](update_segments.sql)
 
-7) Update baseline travel times for new segments
+7) Update baseline travel times for new segments using [this SQL](update_segments.sql)
 
-6) Update centreline conflations for nodes and segment lookup table
+6) Update centreline conflations for nodes and segment lookup table using [this SQL](update_segments.sql)
+
+7) Retire outdated segments to table `congestion.network_segments_retired` using [this SQL](update_retired_segments.sql)
 
 ## How to check changes
 
@@ -57,7 +59,7 @@ Table Structure:
 | end_int            | integer    | centreline int_id that is the target of the segment           | 103216546                |
 | start_px           | integer    | traffic signal px that is the source of the segment           | 203                      |
 | end_px             | integer    | traffic signal px that is the target of the segment           | 204                      |
-| here_version       | text array | here versions that have link_dirs for this segment            | [`21_1`, `22_2`]         |
+| here_version       | text       | here versions that have link_dirs for this segment            | `21_1`                   |
 | centreline_version | text       | centreline versions that have link_dirs for this segment      | ['20220705`, '20230807`] |
 | retired_date       | date       | date this segment was removed from the network_segments table | 08/06/2022               |
 | retired_reason     | text       | reasons for retiring this segment                             | outdated                 |
