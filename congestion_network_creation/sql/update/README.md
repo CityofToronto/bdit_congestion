@@ -23,15 +23,15 @@ The yearly update will include creating a new segment_links table for the curren
 
 4) Create new network_link table by routing the start and end vid of changed segment_ids using [this SQL](update_links.sql)
 
-5) Retire outdated segments to table `congestion.network_segments_retired` using [this]
+5) Add new segments if needed using [this SQL](update_segments.sql)
 
-6) Add new segments if needed using [this SQL](update_segments.sql)
+6) Update baseline travel times for new segments using [this SQL](update_segments.sql)
 
-7) Update baseline travel times for new segments using [this SQL](update_segments.sql)
+7) Update centreline conflations for nodes and segment lookup table using [this SQL](update_segments.sql)
 
-6) Update centreline conflations for nodes and segment lookup table using [this SQL](update_segments.sql)
+8) Retire outdated segments to table `congestion.network_segments_retired` using [this SQL](update_retired_segments.sql)
 
-7) Retire outdated segments to table `congestion.network_segments_retired` using [this SQL](update_retired_segments.sql)
+9) Backfill daily and monthly data for newly added segments in [this SQL](update_segments.sql)
 
 ## How to check changes
 
