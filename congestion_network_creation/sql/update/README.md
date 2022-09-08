@@ -44,7 +44,7 @@ There is an audit table `congestion.logged_actions` that monitors changes in the
 Changes such as `INSERT`, `UPDATE`, `DELETE` on those tables will be logged as an action under `congestion.logged_actions`.
 
 ### Retired segments
-Information on retired segments will be logged in `congestion.network_segments_retired`, which gets updated when a segment is no longer in use.
+Information on retired segments will be logged in `congestion.network_segments_retired`, which gets updated when a segment is no longer in use. You can use the `replaced_id` column to check which new segment_ids is now represents the retired segments.
 
 Table Structure:
 | column_name        | type       | description                                                   | example                  |
