@@ -22,4 +22,20 @@ INNER JOIN congestion.network_int_px_21_1 _s on start_vid = _s.node_id -- to get
 INNER JOIN congestion.network_int_px_21_1 _t on end_vid  = _t.node_id -- to get equivalent end px and int_id
 WHERE segment_id  < 7056
 GROUP BY segment_id, start_vid, end_vid, seg.geom, total_length, highway, start_int, end_int, start_px, end_px, here_version, centreline_version, 
-		retired_date, retired_reason, replaced_id
+		retired_date, retired_reason, replaced_id;
+
+
+
+-- update retired segments tabls with replaced id
+update  congestion.network_segments_retired
+set replaced_id = replaced
+from (select segment_id, array_agg(s) as replaced 
+	 from (
+	select seg.segment_id s, retired.segment_id , seg.start_vid, seg.end_vid, retired.start_vid, retired.end_vid, seg.geom, retired.geom
+	from congestion.network_segments_retired retired 
+	inner join congestion.network_segments seg on ST_intersects(retired.geom, seg.geom)
+	where retired_reason = 'new traffic signal' and 
+	  seg.segment_id > 7056 and 
+	  gis.direction_from_line(retired.geom)  = direction)a
+	 group by segment_id)b
+	 where b.segment_id = network_segments_retired.segment_id		

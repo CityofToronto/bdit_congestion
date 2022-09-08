@@ -268,3 +268,4 @@ WHERE segment_id IN (
 		select ST_Transform(ST_buffer(ST_Transform(geom, 2952), 50), 4326) as geom from bqu.traffic_signal
 		where activationdate >= '2022-04-14') new_signal on ST_intersects(new_signal.geom, seg.geom)
 	and segment_id < 7056);
+
