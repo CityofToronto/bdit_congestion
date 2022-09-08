@@ -1,3 +1,6 @@
+-----------------------------------------------------------------------------------------------------------------------------------------
+-- SQL to Update segments that got split by new traffic signals 
+-----------------------------------------------------------------------------------------------------------------------------------------
 -- Find segments that needs to be updated due to new traffic signals
 with new_signal as (
 	select ST_Transform(ST_buffer(ST_Transform(geom, 2952), 50), 4326) as geom from bqu.traffic_signal
@@ -7,12 +10,14 @@ select seg.*
 from congestion.network_segments seg
 join new_signal on ST_intersects(new_signal.geom, seg.geom)
 
--- Add new nodes
+-----------------------------------------------------------------------------------------------------------------------------------------
+-- Add new nodes where the traffic signal lies
 INSERT INTO congestion.network_nodes
 SELECT DISTINCT node_id, geom
 FROM  here.routing_nodes_22_2 
 WHERE node_id in (30420738, 30454395, 30454396, 968443982, 30421677, 30421675, 30362945, 30358297, 30356236, 30356237, 30350790)
 
+-----------------------------------------------------------------------------------------------------------------------------------------
 -- create new network_int_px lookup table for the current map version
 CREATE TABLE congestion.network_int_px_22_2 AS 
 
@@ -64,21 +69,27 @@ SELECT distinct node_id, int_id , '2595', node.geom, cent.geom, null::double pre
 FROM congestion.network_nodes node, gis.centreline_intersection_20220705 cent
 where node.node_id = 30350790 and int_id = 13453545;
 
--- Route new segments
+INSERT INTO  congestion.network_int_px_22_2
+SELECT distinct node_id, int_id , '2611', node.geom, cent.geom, null::double precision as dist
+FROM congestion.network_nodes node, gis.centreline_intersection_20220705 cent
+where node.node_id = 30359772 and int_id = 13459487;
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+-- Route new segments using new nodes we added
 WITH nodes AS (
-	SELECT array_agg(node_id::int) as nodes_to_route
-	FROM	(select start_vid as node_id
+	SELECT array_agg(node_id::int) as nodes_to_route -- aggregate them into one array for many-to-many routing
+	FROM	(select start_vid as node_id --start vid of retired segments
 			 from congestion.network_segments seg
 			 join (select ST_Transform(ST_buffer(ST_Transform(geom, 2952), 50), 4326) as geom from bqu.traffic_signal
 					where activationdate >= '2022-04-14') new_signal on ST_intersects(new_signal.geom, seg.geom)
 			union 
-			select end_vid
+			select end_vid --end vid of retired segments
 				from congestion.network_segments seg
 				join (
 					select ST_Transform(ST_buffer(ST_Transform(geom, 2952), 50), 4326) as geom from bqu.traffic_signal
 					where activationdate >= '2022-04-14') new_signal on ST_intersects(new_signal.geom, seg.geom)
 			union
-			select distinct node_id FROM  here.routing_nodes_22_2 
+			select distinct node_id FROM  here.routing_nodes_22_2 -- new nodes that we added
 			WHERE node_id in (30420738, 30454395, 30454396, 968443982, 30421677, 30421675, 30362945, 30358297, 30356236, 30356237, 30350790))a)
 
 -- routed using many-to-many
@@ -90,6 +101,7 @@ WITH nodes AS (
 				nodes_to_route, nodes_to_route) results
 	INNER JOIN here.routing_streets_22_2 routing_grid ON id = edge)
 
+-- assign new segment_id starting at the max number of current segment_id 
 , cleaned_results AS (
 	SELECT 7056+row_number() over () as segment_id, 
 				start_vid, 
@@ -107,7 +119,8 @@ WITH nodes AS (
 	GROUP BY start_vid, end_vid
 	HAVING COUNT(node_id) =0 and sum(cost) > 20 -- exclude routed results that went pass any other node_ids and short links
 	order by start_vid, end_vid)
-	
+ 
+ -- insert into network_links	
 INSERT INTO congestion.network_links_22_2 
 select 	segment_id, 
 		start_vid, 
@@ -120,13 +133,14 @@ from (select segment_id, start_vid, end_vid, unnest(link_set) as link_dir
 inner join here.routing_streets_22_2 using (link_dir)
 order by segment_id;
 
+ -- insert into network_segments	
 INSERT INTO congestion.network_segments
 select segment_id, start_vid, end_vid, ST_linemerge(ST_union(geom)) , sum(length), false, gis.direction_from_line(ST_linemerge(ST_union(geom))) as dir
 from  congestion.network_links_22_2
 where segment_id > 7056
 group by segment_id, start_vid, end_vid;
 
-
+-----------------------------------------------------------------------------------------------------------------------------------------
 -- Create baseline for these newly created segments
 WITH link_60_tt AS (
 	SELECT 		segment_id,
@@ -168,6 +182,7 @@ FROM 		segment_60_tt
 WHERE 		datetime_bin::time >= '07:00:00' AND datetime_bin::time  < '21:00:00' 
 GROUP BY 	segment_id;
 
+-----------------------------------------------------------------------------------------------------------------------------------------
 -- Backfill for those newly created segments
 WITH speed_links AS (
     SELECT 		segment_id, 
@@ -225,7 +240,7 @@ SELECT 			segment_id,
 FROM 			tt_hr
 WHERE 			segment_avg_tt IS NOT NULL;
 
-
+-- Backfill monthly data
 INSERT INTO congestion.network_segments_monthly
 	SELECT 		segment_id, 
 				date_trunc('month', dt) AS mth, 
@@ -249,8 +264,9 @@ INSERT INTO congestion.network_segments_monthly
 	GROUP BY    segment_id, mth, hr, day_type
 	ORDER BY    segment_id, mth, hr, day_type;
 
--- !! After moving those segments to the retired table !!
--- Finally delete them from the congestion.network_segments
+-----------------------------------------------------------------------------------------------------------------------------------------
+-- !!!!! After moving those segments to the retired table !!!!!!- Check update_segments_retired.sql
+-- Finally delete outdated ones from the congestion.network_segments and network_links
 DELETE FROM congestion.network_segments
 WHERE segment_id IN (
 	select segment_id as old_s
