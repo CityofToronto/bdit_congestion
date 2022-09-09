@@ -19,7 +19,7 @@ LOGGER = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
 # Slack alert
-SLACK_CONN_ID = 'slack'
+SLACK_CONN_ID = 'slack_data_pipeline'
 def task_fail_slack_alert(context):
     slack_webhook_token = BaseHook.get_connection(SLACK_CONN_ID).password
     task_msg = '<@UF4RQFQ11> !!! {task_id} in congestion_refresh DAG failed.'.format(task_id=context.get('task_instance').task_id)   
@@ -36,7 +36,7 @@ def task_fail_slack_alert(context):
 
 default_args = {'owner':'natalie',
                 'depends_on_past':False,
-                'start_date': datetime(2022, 8, 10),
+                'start_date': datetime(2022, 9, 6),
                 'email': ['natalie.chan@toronto.ca'],
                 'email_on_failure': False,
                 'email_on_success': False,
@@ -45,21 +45,13 @@ default_args = {'owner':'natalie',
                 'on_failure_callback': task_fail_slack_alert
                 }
 
-dag = DAG('congestion_refresh', 
+dag = DAG('test_congestion_refresh', 
           default_args=default_args, 
           schedule_interval='30 16 * * * ', # same as pull_here task 
           catchup=False,
 )
 
 ## Functions
-# check if its monday
-def is_monday(date_to_pull):	
-    execution_date = datetime.strptime(date_to_pull, "%Y-%m-%d")	
-    if execution_date.weekday() == 0:		
-        return True
-    else: 
-        return False
-
 # check if its the start of the month
 def is_day_one(date_to_pull):
     execution_date = datetime.strptime(date_to_pull, "%Y-%m-%d")	
@@ -79,14 +71,6 @@ wait_for_here = ExternalTaskSensor(task_id='wait_for_here',
                                    )
 
 ## ShortCircuitOperator Tasks, python_callable returns True or False; False means skip downstream tasks
-check_dow = ShortCircuitOperator(
-    task_id='check_dow',
-    provide_context=False,
-    python_callable=is_monday,
-    op_kwargs={'date_to_pull': '{{ yesterday_ds }}'},
-    dag=dag
-    )
-
 check_dom = ShortCircuitOperator(
     task_id='check_dom',
     provide_context=False,
@@ -96,11 +80,13 @@ check_dom = ShortCircuitOperator(
     )
 
 ## SQLCheckOperator to check if all of last weeks data is in the data before aggregating
-check_monthly = SQLCheckOperator(task_id = 'check_daily',
-                                 conn_id='congestion_bot',
-                                 sql = '''SELECT case when count(distinct dt) = extract('days' FROM ('{{ yesterday_ds }}'::date + interval '1 month' - '{{ yesterday_ds }}'::date)) 
-                                          then TRUE else FALSE end as counts
-                                          from here.ta''',
+check_monthly = SQLCheckOperator(task_id = 'check_monthly',
+                                 conn_id = 'congestion_bot',
+                                 sql = '''SELECT case when count(distinct dt) = 
+                                                    extract('days' FROM ('{{ yesterday_ds }}'::date + interval '1 month' - '{{ yesterday_ds }}'::date)) 
+                                                    THEN TRUE ELSE FALSE END AS counts
+                                          FROM here.ta
+                                          WHERE dt >= '{{ yesterday_ds }}'::date and dt < '{{ yesterday_ds }}'::date + interval '1 month' ''',
                                  dag=dag)
 
 ## Postgres Tasks
@@ -114,14 +100,11 @@ aggregate_daily = PostgresOperator(sql='''SELECT congestion.generate_network_dai
 
 
 # Task to aggregate segment level tt monthly
-aggregate_monthly = PostgresOperator(sql='''select congestion.generate_network_monthly('{{ ds.format(macros.ds_add(ds, -1), "%Y-%m-01") }}');''',
+aggregate_monthly = PostgresOperator(sql='''select congestion.generate_network_monthly('{{ macros.datetime.date(execution_date + macros.dateutil.relativedelta.relativedelta(months=-1, day=1)) }}');''',
                                      task_id='aggregate_monthly',
                                      postgres_conn_id='congestion_bot',
                                      autocommit=True,
                                      retries = 0,
                                      dag=dag)
 
-
-
-wait_for_here >> aggregate_daily >> check_dow >> aggregate_daily
 wait_for_here >> aggregate_daily >> check_dom >> check_monthly >> aggregate_monthly 
