@@ -83,10 +83,10 @@ check_dom = ShortCircuitOperator(
 check_monthly = SQLCheckOperator(task_id = 'check_monthly',
                                  conn_id = 'congestion_bot',
                                  sql = '''SELECT case when count(distinct dt) = 
-                                                    extract('days' FROM ('{{ yesterday_ds }}'::date + interval '1 month' - '{{ yesterday_ds }}'::date)) 
+                                                    extract('days' FROM ('{{ macros.datetime.date(execution_date + macros.dateutil.relativedelta.relativedelta(months=-1, day=1)) }}'::date + interval '1 month' - '{{ macros.datetime.date(execution_date + macros.dateutil.relativedelta.relativedelta(months=-1, day=1)) }}'::date)) 
                                                     THEN TRUE ELSE FALSE END AS counts
                                           FROM here.ta
-                                          WHERE dt >= '{{ yesterday_ds }}'::date and dt < '{{ yesterday_ds }}'::date + interval '1 month' ''',
+                                          WHERE dt >= '{{ macros.datetime.date(execution_date + macros.dateutil.relativedelta.relativedelta(months=-1, day=1)) }}'::date and dt < '{{ macros.datetime.date(execution_date + macros.dateutil.relativedelta.relativedelta(months=-1, day=1)) }}'::date + interval '1 month' ''',
                                  dag=dag)
 
 ## Postgres Tasks
@@ -107,4 +107,4 @@ aggregate_monthly = PostgresOperator(sql='''select congestion.generate_network_m
                                      retries = 0,
                                      dag=dag)
 
-wait_for_here >> aggregate_daily >> check_dom >> check_monthly >> aggregate_monthly 
+wait_for_here >> aggregate_daily >> check_dom >> check_monthly >> aggregate_monthly
