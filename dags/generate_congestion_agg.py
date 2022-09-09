@@ -22,7 +22,7 @@ logging.basicConfig(level=logging.DEBUG)
 SLACK_CONN_ID = 'slack_data_pipeline'
 def task_fail_slack_alert(context):
     slack_webhook_token = BaseHook.get_connection(SLACK_CONN_ID).password
-    task_msg = '<@UF4RQFQ11> !!! {task_id} in congestion_refresh DAG failed.'.format(task_id=context.get('task_instance').task_id)   
+    task_msg = ':cat_yell: <@UF4RQFQ11> !!! {task_id} in congestion_aggregation DAG failed.'.format(task_id=context.get('task_instance').task_id)   
     slack_msg = task_msg + """(<{log_url}|log>)""".format(
             log_url=context.get('task_instance').log_url,)
     failed_alert = SlackWebhookOperator(
