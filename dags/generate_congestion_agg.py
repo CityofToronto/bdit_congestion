@@ -45,7 +45,7 @@ default_args = {'owner':'natalie',
                 'on_failure_callback': task_fail_slack_alert
                 }
 
-dag = DAG('test_congestion_refresh', 
+dag = DAG('congestion_aggregation', 
           default_args=default_args, 
           schedule_interval='30 16 * * * ', # same as pull_here task 
           catchup=False,
