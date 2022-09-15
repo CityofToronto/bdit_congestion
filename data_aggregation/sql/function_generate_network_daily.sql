@@ -34,19 +34,13 @@ tt_hr AS (
                           THEN SUM(link_length / spd_avg  * 3.6 ) * total_length / SUM(link_length)
                      ELSE 
                          NULL 
-                END AS segment_avg_tt,
-				CASE WHEN highway IS false 
-						THEN baseline_10pct
-					ELSE
-						baseline_25pct
-				END AS baseline_tt,
+                END AS segment_avg_tt
 				sum(num_bin) as num_bin
     
     FROM 		speed_links
     INNER JOIN 	congestion.network_segments USING (segment_id)
-    LEFT JOIN 	congestion.network_baseline USING (segment_id)
 	
-    GROUP BY	segment_id, dt, hr, total_length, highway, baseline_10pct, baseline_25pct
+    GROUP BY	segment_id, dt, hr, total_length
     ORDER BY	segment_id, dt, hr
 )
 
@@ -70,4 +64,4 @@ ALTER FUNCTION congestion.generate_network_daily(date)
 GRANT EXECUTE ON FUNCTION congestion.generate_network_daily(date) TO congestion_admins;
 GRANT EXECUTE ON FUNCTION congestion.generate_network_daily(date) TO congestion_bot;
 COMMENT ON FUNCTION congestion.generate_network_daily(date)
-    IS 'Function that aggregate network segments hourly travel time and travel time index for each day. Runs everyday through an airflow process.';
+    IS 'Function that aggregate network segments hourly travel time for each day. Runs everyday through an airflow process.';
