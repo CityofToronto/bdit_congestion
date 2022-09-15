@@ -38,4 +38,4 @@ ALTER FUNCTION congestion.generate_network_monthly(date)
 GRANT EXECUTE ON FUNCTION congestion.generate_network_monthly(date) TO congestion_admins;
 GRANT EXECUTE ON FUNCTION congestion.generate_network_monthly(date) TO congestion_bot;
 COMMENT ON FUNCTION congestion.generate_network_monthly(date)
-    IS 'Function that aggregate network segments hourly travel time and travel time index for each month, excluding holidays. Runs every month through an airflow process.';	
+    IS 'Function that aggregate network segments hourly travel time for each month, excluding holidays. Runs every month through an airflow process.';	
