@@ -195,3 +195,118 @@ INSERT INTO congestion.network_segments_monthly
 -----------------------------------------------------------------------------------------------------------------------------------------
 -- save as .sql and run with nohup 
 nohup psql -U natalie -d bigdata -h ip -f here_congestion_incorrect.sql &
+-----------------------------------------------------------------------------------------------------------------------------------------
+	
+---------------------------------------------------------------------------------------------------------
+-- Re-route Centreline matches
+
+INSERT INTO congestion.segments_centreline_routed_21_1 
+
+WITH segment_info AS (
+	select 		segment_id, start_vid, end_vid, fnode.int_id as start_int, tnode.int_id as end_int
+	from 		congestion.network_segments
+	left join 	congestion.network_int_px_21_1 fnode on fnode.node_id = network_segments.start_vid
+	left join 	congestion.network_int_px_21_1 tnode on tnode.node_id = network_segments.end_vid
+	where 		fnode.int_id != tnode.int_id and 
+				fnode.int_id is not null and 
+				tnode.int_id is not null and segment_id in (7103, 7104) )
+, result AS (
+	SELECT * 
+	FROM   			   segment_info
+	CROSS JOIN LATERAL pgr_dijkstra('SELECT id, source::int, target::int, cost
+				 	   				 FROM gis.centreline_routing_20220705_undirected', 
+									 start_int, 
+									 end_int, 
+									 FALSE))
+					   
+	select segment_id, start_vid, end_vid, start_int, end_int, array_agg(geo_id), ST_linemerge(ST_union(a.geom)) as geom
+	from result
+	inner join gis.centreline_20220705 a on geo_id = edge
+	group by segment_id, start_vid, end_vid, start_int, end_int
+
+----------------
+
+INSERT INTO  congestion.segments_centreline_routed_21_1_missing 
+with temp as (
+select a.node_id as start_vid, a.int_id as start_int, b.node_id as end_vid, b.int_id as end_int
+from congestion.network_int_px_21_1 a , 
+	 congestion.network_int_px_21_1 b
+where a.node_id =  30415164 and b.node_id = 30415151)
+
+select ARRAY[7104, 4934] as segment_set, start_vid, end_vid, start_int, end_int, 
+		array_agg(geo_id) as geo_id_set, 
+		ST_linemerge(ST_union(a.geom)) as geom
+from  temp 
+cross join lateral pgr_dijkstra('SELECT id, source::int, target::int, cost
+				 	   			FROM gis.centreline_routing_20220705_undirected', 
+								start_int, 
+								end_int, 
+								FALSE)
+inner join gis.centreline_20220705 a on geo_id = edge
+group by start_vid, end_vid, start_int, end_int
+------------------
+
+INSERT INTO congestion.segment_centreline 
+
+select * from congestion.segments_centreline_routed_21_1_missing
+WHERE segment_set = ARRAY[7104, 4934::bigint]
+union all
+select array[segment_id], start_vid, end_vid, start_int, end_int, array_agg, geom 
+		from congestion.segments_centreline_routed_21_1
+WHERE segment_id = 7103
+
+--------------------
+------------------
+
+----------------------
+INSERT INTO congestion.temp_street_name_segments 
+
+WITH prep as (
+select segment_set, start_vid, end_vid, start_int, end_int, unnest(geo_id_set) as geo_id, geom
+from congestion.segment_centreline
+WHERE segment_set = ARRAY[7108::bigint]  )
+
+select segment_set, start_vid, end_vid, start_int, end_int, array_agg(distinct lf_name) as st_name, array_agg(geo_id) as geo_id_set, 
+		array_length(array_agg(distinct lf_name), 1), prep.geom 
+from prep
+inner join gis.centreline_20220705 using (geo_id)
+group by segment_set, start_vid, end_vid, start_int, end_int, prep.geom     
+
+-----------------------
+WITH ints AS (
+
+    select 		distinct on (int_id) int_id, linear_name_full_from , linear_name_full_to
+    from 		gis.centreline_intersection_20220705
+    where not 	linear_name_full_from = 'Planning Boundary' and not linear_name_full_to = 'Planning Boundary'
+    order by 	int_id, linear_name_full_from , linear_name_full_to)
+
+INSERT INTO congestion.segment_centreline_name
+select 		segment_set, 
+			start_int, 
+			end_int, 
+			st_name, 
+			geo_id_set,
+			case 	when array_length = 1 then st_name[1]
+		 			when array_length = 2 then st_name[1]||' and '||st_name[2]
+		 			when array_length = 3 then st_name[1]||' and '||st_name[2]||' and '||st_name[3] end as main_street, -- making a list into one name 
+			coalesce(	case when s.linear_name_full_from = ANY(st_name) then null 
+					 			else s.linear_name_full_from end, 
+                		case when s.linear_name_full_to = ANY(st_name) then null  
+					 			else s.linear_name_full_to end) 
+									as start_int_name, 
+			coalesce(	case when e.linear_name_full_from = ANY(st_name) then null  
+					 			else e.linear_name_full_from end, 
+                		case when e.linear_name_full_to = ANY(st_name) then null  
+					 			else e.linear_name_full_to end) 
+									as end_int_name, 
+			seg.geom
+from 		congestion.temp_street_name_segments seg
+left join 	ints s on s.int_id = start_int
+left join  	ints e on e.int_id = end_int
+WHERE 		segment_set = ARRAY[7108::bigint]  
+order by 	segment_set;
+
+
+
+
+
