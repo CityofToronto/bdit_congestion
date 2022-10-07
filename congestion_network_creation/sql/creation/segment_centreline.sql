@@ -201,6 +201,13 @@ where start_int = 13445233;
 update congestion.segment_centreline_name
 set end_int_name = 'Cherry St'
 where end_int = 13466977;
+update congestion.segment_centreline_name
+set start_int_name = 'St Clair Ave W'
+where start_int = 13461960 and segment_set = ARRAY[74::bigint];
+update congestion.segment_centreline_name
+set end_int_name = 'St Clair Ave W'
+where end_int = 13461960 and segment_set = ARRAY[3459::bigint];
+
 
 
 -- Find name using traffic signal
@@ -215,3 +222,49 @@ with temp as (
 	where end_int_name is null)
 select 	start_int, * from gis.traffic_signal
 inner join temp using (px)
+
+-- Fix incorrectly routed centrelines
+update  congestion.segment_centreline
+set  end_int = 13461960 , geo_id_set = ARRAY[1140787,14003540,14003539]
+where segment_set = ARRAY[3459::bigint]
+
+update  congestion.segment_centreline_name
+set  end_int = 13461960 , geo_id_set = ARRAY[1140787,14003540,14003539]
+where segment_set = ARRAY[3459::bigint]
+
+update  congestion.segment_centreline
+set  start_int = 13461960 , geo_id_set = ARRAY[1140787,14003540,14003539]
+where segment_set = ARRAY[74::bigint]
+
+update  congestion.segment_centreline_name
+set  start_int = 13461960 , geo_id_set = ARRAY[1140787,14003540,14003539]
+where segment_set = ARRAY[74::bigint]
+
+-- Fixing the geoms 
+update  congestion.segment_centreline
+set  geom = un
+from (select ST_union(ST_linemerge(geom)) as un from gis.centreline_20220705 
+	  where geo_id in (1140787,14003539,14003540)
+	  ) a
+where segment_set = ARRAY[3459::bigint]
+
+update  congestion.segment_centreline_name
+set  geom = un
+from (select ST_union(ST_linemerge(geom)) as un from gis.centreline_20220705 
+	  where geo_id in (1140787,14003539,14003540)
+	  ) a
+where segment_set = ARRAY[3459::bigint]
+
+update  congestion.segment_centreline
+set  geom = un
+from (select ST_union(ST_linemerge(geom)) as un from gis.centreline_20220705 
+	  where geo_id in (1140787,14003539,14003540)
+	  ) a
+where segment_set = ARRAY[74::bigint]
+
+update  congestion.segment_centreline_name
+set  geom = un
+from (select ST_union(ST_linemerge(geom)) as un from gis.centreline_20220705 
+	  where geo_id in (1140787,14003539,14003540)
+	  ) a
+where segment_set = ARRAY[74::bigint]
