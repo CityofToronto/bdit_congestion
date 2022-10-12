@@ -268,3 +268,15 @@ from (select ST_union(ST_linemerge(geom)) as un from gis.centreline_20220705
 	  where geo_id in (1140787,14003539,14003540)
 	  ) a
 where segment_set = ARRAY[74::bigint]
+
+
+-- Update length of segment_centreline's centreline set length
+UPDATE congestion.segment_centreline
+set length = l
+from (
+select segment_set, sum(ST_length(ST_transform(geom, 2952))) as l  from 
+	(select segment_set, unnest(geo_id_set) as geo_id
+	from congestion.segment_centreline)a
+inner join gis.centreline_20220705 using (geo_id)
+group by segment_set) b
+where b.segment_set = segment_centreline.segment_set
