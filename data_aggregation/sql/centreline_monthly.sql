@@ -13,7 +13,10 @@ CREATE TABLE IF NOT EXISTS congestion.centreline_monthly
 	min_tt numeric NOT NULL,
 	max_tt numeric NOT NULL,
 	std_dev numeric NOT NULL,
-	num_bins integer  NOT NULL
+	num_bins integer  NOT NULL,
+    py_pct_10_tt numeric NOT NULL,
+    py_pct_25_tt numeric NOT NULL
+    
 ) PARTITION BY RANGE (mth);
 
 ALTER TABLE congestion.centreline_monthly OWNER TO congestion_admins;
