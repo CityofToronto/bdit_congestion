@@ -101,7 +101,7 @@ aggregate_daily = PostgresOperator(sql='''SELECT congestion.generate_network_dai
 
 # Task to aggregate segment level tt monthly
 aggregate_seg_monthly = PostgresOperator(sql='''select congestion.generate_network_monthly('{{ macros.datetime.date(execution_date + macros.dateutil.relativedelta.relativedelta(months=-1, day=1)) }}');''',
-                                     task_id='aggregate_monthly',
+                                     task_id='aggregate_seg_monthly',
                                      postgres_conn_id='congestion_bot',
                                      autocommit=True,
                                      retries = 0,
@@ -109,7 +109,7 @@ aggregate_seg_monthly = PostgresOperator(sql='''select congestion.generate_netwo
 
 # Task to aggregate centreline level tt monthly 
 aggregate_cent_monthly = PostgresOperator(sql='''select congestion.generate_centreline_monthly('{{ macros.datetime.date(execution_date + macros.dateutil.relativedelta.relativedelta(months=-1, day=1)) }}');''',
-                                     task_id='aggregate_monthly',
+                                     task_id='aggregate_cent_monthly',
                                      postgres_conn_id='congestion_bot',
                                      autocommit=True,
                                      retries = 0,
