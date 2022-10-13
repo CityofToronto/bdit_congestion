@@ -36,14 +36,14 @@ AS $BODY$
 				CASE WHEN extract(isodow from dt) <6 then 'Weekday'
 					ELSE 'Weekend' END AS day_type,
 				round(avg(tt), 2) AS avg_tt,
-				PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY tt) AS median_tt,
-				PERCENTILE_CONT(0.85) WITHIN GROUP (ORDER BY tt) AS pct_85_tt,
-				PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY tt) AS pct_95_tt,
+				round(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY tt)::numeric, 2) AS median_tt,
+				round(PERCENTILE_CONT(0.85) WITHIN GROUP (ORDER BY tt)::numeric, 2) AS pct_85_tt,
+				round(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY tt)::numeric, 2) AS pct_95_tt,
 				round(min(tt), 2) AS min_tt,
 				round(max(tt), 2) AS max_tt,
-				stddev(tt) AS std_dev,
-                baseline_10pct AS py_pct_10_tt,
-                baseline_25pct AS py_pct_25_tt
+				round(stddev(tt), 2)  AS std_dev,
+                round(baseline_10pct::numeric, 2)  AS py_pct_10_tt,
+                round(baseline_25pct::numeric, 2)  AS py_pct_25_tt
     
     FROM  		centreline_daily a
 	LEFT JOIN 	ref.holiday USING (dt) -- exclude holidays
