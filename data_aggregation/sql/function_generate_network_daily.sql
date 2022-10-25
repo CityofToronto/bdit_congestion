@@ -30,12 +30,13 @@ tt_hr AS (
     SELECT 		segment_id, 
                 dt,
 				hr,
-                CASE WHEN SUM(link_length) >= 0.8 * total_length 
-                          THEN SUM(link_length / spd_avg  * 3.6 ) * total_length / SUM(link_length)
-                     ELSE 
-                         NULL 
-                END AS segment_avg_tt
-				sum(num_bin) as num_bin
+                SUM(link_length / spd_avg  * 3.6 ) * total_length / SUM(link_length) AS segment_avg_tt,
+                SUM(link_length) AS length_w_data,
+    			CASE WHEN SUM(link_length) >= 0.8 * total_length 
+                     THEN True 
+					 ELSE False 
+				END AS valid,
+				sum(num_bin) AS num_bin
     
     FROM 		speed_links
     INNER JOIN 	congestion.network_segments USING (segment_id)
@@ -52,9 +53,11 @@ SELECT 			segment_id,
                 dt,
                 hr,
                 round(segment_avg_tt::numeric, 2) as tt,
+                length_w_data,
+                valid,
 				num_bin
+                
 FROM 			tt_hr
-WHERE 			segment_avg_tt IS NOT NULL
 
 $BODY$;
 
@@ -63,5 +66,7 @@ ALTER FUNCTION congestion.generate_network_daily(date)
 
 GRANT EXECUTE ON FUNCTION congestion.generate_network_daily(date) TO congestion_admins;
 GRANT EXECUTE ON FUNCTION congestion.generate_network_daily(date) TO congestion_bot;
+REVOKE EXECUTE ON FUNCTION congestion.generate_network_daily(date) TO bdit_humans;
+
 COMMENT ON FUNCTION congestion.generate_network_daily(date)
     IS 'Function that aggregate network segments hourly travel time for each day. Runs everyday through an airflow process.';
