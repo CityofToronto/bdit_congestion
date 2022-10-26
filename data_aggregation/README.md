@@ -15,7 +15,7 @@ Aggregation steps:
 
 1) Produce estimates of the average travel time for each 1 hour bin for each individual link (link_dir) from 5 min bins
 
-2) Produces estimates of the average travel time for each 1 hour bin for each individual segment (segment_id), where at least 80% of the segment (by distance) has observations at the link (link_dir) level
+2) Produces estimates of the average travel time for each 1 hour bin for each individual segment (segment_id), where at least 80% of the segment (by distance) has observations at the link (link_dir) level. An unadjusted travel time for each segment is also calculated, along with the summed length of link_dir with data and a `is_valid` true and false boolean tag.  
 
 3) Inserts the segment aggregation into congestion.network_segments_daily
 
@@ -38,13 +38,16 @@ Aggregation steps:
 Daily travel time data is stored under the table `congestion.network_segments_daily`, which is partitioned monthly using range declarative partitioning on the column `dt`. Partitioned table has a suffix of `_yyyymm` indicating the month of data it stores, e.g. `network_segments_daily_202202`.  
 
 - Table structure:
-     | column_name | type    | description                                 | example    |
-     |-------------|---------|---------------------------------------------|------------|
-     | segment_id  | integer | Unique identifier of each segment           | 1029       |
-     | dt          | date    | Date in YYYY-MM-DD format                   | 2020-03-07 |
-     | hr          | integer | Hour of the day                                        |      8      |
-     | tt          | numeric | Average Travel Time on this   segment in seconds   | 20.13      |
-     | num_bins    | integer | The total number of 5-min bins   used for aggregating travel times for this segment  | 23         |
+     | column_name   | type    | description                                 | example    |
+     |---------------|---------|---------------------------------------------|------------|
+     | segment_id    | integer | Unique identifier of each segment           | 1029       |
+     | dt            | date    | Date in YYYY-MM-DD format                   | 2020-03-07 |
+     | hr            | integer | Hour of the day                             |      8      |
+     | tt            | numeric | Average Travel Time on this segment in seconds   | 20.13      |
+     | unadjusted_tt | numeric | Average Travel Time on this segment in seconds adjusted to segment's length where at least 80% link_dir has data | 10.25      |
+     | length_w_data | numeric | Unadjusted average Travel Time on this segment in seconds (sum of travel times for each corresponding link_dir with data)   | 151.3      |
+     | is_valid      | boolean | Whether the adjusted travel time is based on at least 80% of link_dir with data| true      |
+     | num_bins      | integer | The total number of 5-min bins used for aggregating travel times for this segment  | 23         |
 
 
 ### Monthly Travel times 
