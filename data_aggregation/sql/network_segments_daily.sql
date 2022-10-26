@@ -5,8 +5,9 @@ CREATE TABLE IF NOT EXISTS congestion.network_segments_daily
 	dt date NOT NULL,
 	hr numeric NOT NULL,
 	tt numeric NOT NULL, 
+    unadjusted_tt numeric NOT NULL,
     length_w_data numeric NOT NULL,
-    valid boolean NOT NULL,
+    is_valid boolean NOT NULL,
 	num_bins integer NOT NULL
 ) PARTITION BY RANGE (dt);
 

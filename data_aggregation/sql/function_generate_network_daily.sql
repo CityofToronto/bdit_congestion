@@ -30,12 +30,13 @@ tt_hr AS (
     SELECT 		segment_id, 
                 dt,
 				hr,
-                SUM(link_length / spd_avg  * 3.6 ) * total_length / SUM(link_length) AS segment_avg_tt,
-                SUM(link_length) AS length_w_data,
+                SUM(link_length / spd_avg  * 3.6 ) * total_length / SUM(link_length) AS tt, -- Adjusted to segment's length
+                SUM(link_length / spd_avg  * 3.6 ) AS unadjusted_tt, -- Not adjusted to segment's length, only summing up link_dir tt
+                SUM(link_length) AS length_w_data, -- Sum of link_dir with data's length  
     			CASE WHEN SUM(link_length) >= 0.8 * total_length 
                      THEN True 
 					 ELSE False 
-				END AS valid,
+				END AS is_valid, -- Adjusted tt valid to use if this value is True
 				sum(num_bin) AS num_bin
     
     FROM 		speed_links
@@ -52,9 +53,10 @@ INSERT INTO     congestion.network_segments_daily
 SELECT 			segment_id,
                 dt,
                 hr,
-                round(segment_avg_tt::numeric, 2) as tt,
+                round(tt::numeric, 2) as tt,
+                round(unadjusted_tt::numeric, 2) as unadjusted_tt,
                 length_w_data,
-                valid,
+                is_valid,
 				num_bin
                 
 FROM 			tt_hr
