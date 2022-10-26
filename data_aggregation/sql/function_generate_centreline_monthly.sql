@@ -14,7 +14,7 @@ AS $BODY$
 	SELECT  	uid, 
                 dt, 
                 hr, 
-				((segment_set_length / (sum(total_length) / sum(tt))) * cent_length)/segment_set_length as tt,
+				((segment_set_length / (sum(length_w_data) / sum(tt))) * cent_length)/segment_set_length as tt,
                 baseline_10pct, 
                 baseline_25pct
 	
@@ -25,10 +25,10 @@ AS $BODY$
 	LEFT JOIN 	ref.holiday USING (dt) -- exclude holidays
 	WHERE       (dt >= _dt AND dt < _dt + INTERVAL '1 month') AND 
 				yr::int = EXTRACT(YEAR From _dt) AND
-				holiday.dt IS NULL 
+				holiday.dt IS NULL
         
-	GROUP BY 	uid, dt, hr, total_length, baseline_10pct, baseline_25pct, segment_set_length, cent_length
-	HAVING 		sum(total_length) >= (segment_set_length * 0.8))
+	GROUP BY 	uid, dt, hr, length_w_data, baseline_10pct, baseline_25pct, segment_set_length, cent_length
+	HAVING 		sum(length_w_data) >= (segment_set_length * 0.8))
     
     SELECT 		uid, 
 				date_trunc('month', a.dt) AS mth, 
