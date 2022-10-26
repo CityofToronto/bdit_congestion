@@ -24,8 +24,9 @@ AS $BODY$
     
     FROM  		congestion.network_segments_daily
 	LEFT JOIN 	ref.holiday USING (dt) -- exclude holidays
-    WHERE 		(dt >= _dt AND dt < _dt + INTERVAL '1 month') and 
-				holiday.dt IS NULL 
+    WHERE 		(dt >= _dt AND dt < _dt + INTERVAL '1 month') AND 
+				holiday.dt IS NULL AND
+                valid IS true
     
 	GROUP BY    segment_id, mth, hr, day_type
 	ORDER BY    segment_id, mth, hr, day_type
