@@ -14,7 +14,7 @@ AS $BODY$
 	SELECT  	uid, 
                 dt, 
                 hr, 
-				((segment_set_length / (sum(length_w_data) / sum(tt))) * cent_length)/segment_set_length as tt,
+				sum(unadjusted_tt) * ((cent_length/sum(length_w_data))) AS tt,
                 baseline_10pct, 
                 baseline_25pct
 	
@@ -22,13 +22,13 @@ AS $BODY$
 	INNER JOIN  congestion.segment_centreline_lookup using (segment_id)
 	INNER JOIN  congestion.network_segments using (segment_id)
     LEFT JOIN   congestion.centreline_baseline using (uid)
-	LEFT JOIN 	ref.holiday USING (dt) -- exclude holidays
+	LEFT JOIN 	ref.holiday USING (dt)
 	WHERE       (dt >= _dt AND dt < _dt + INTERVAL '1 month') AND 
-				yr::int = EXTRACT(YEAR From _dt) AND
-				holiday.dt IS NULL
+				yr::int = EXTRACT(YEAR From _dt - INTERVAL '1 year') AND -- select last year's baseline 
+				holiday.dt IS NULL -- exclude holidays
         
 	GROUP BY 	uid, dt, hr, length_w_data, baseline_10pct, baseline_25pct, segment_set_length, cent_length
-	HAVING 		sum(length_w_data) >= (segment_set_length * 0.8))
+	HAVING 		sum(length_w_data) >= (cent_length * 0.8))
     
     SELECT 		uid, 
 				date_trunc('month', a.dt) AS mth, 
