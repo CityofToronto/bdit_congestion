@@ -31,7 +31,7 @@ AS $BODY$
 	HAVING 		sum(length_w_data) >= (cent_length * 0.8))
     
     SELECT 		uid, 
-				date_trunc('month', a.dt) AS mth, 
+				date_trunc('month', a.dt)::date AS mth, 
 				hr,
 				CASE WHEN extract(isodow from dt) <6 then 'Weekday'
 					ELSE 'Weekend' END AS day_type,
