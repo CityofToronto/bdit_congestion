@@ -42,6 +42,7 @@ AS $BODY$
 				round(min(tt), 2) AS min_tt,
 				round(max(tt), 2) AS max_tt,
 				round(stddev(tt), 2)  AS std_dev,
+                count(1) AS num_bin, 
                 round(baseline_10pct::numeric, 2)  AS py_pct_10_tt,
                 round(baseline_25pct::numeric, 2)  AS py_pct_25_tt
     
