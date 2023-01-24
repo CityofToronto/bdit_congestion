@@ -1,3 +1,11 @@
+"""
+airflow_congestion_aggregation
+
+A data aggregation workflow that aggregates travel time data for
+three Congestion Network intermediate tables, network_daily, network_monthly,
+and centreline_monthly. This DAG is schedule to run only when pull_here DAG
+finished running. 
+"""
 from airflow import DAG
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
