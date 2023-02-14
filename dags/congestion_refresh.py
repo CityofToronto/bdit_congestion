@@ -7,7 +7,7 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.hooks.base_hook import BaseHook
 from airflow.contrib.operators.slack_webhook_operator import SlackWebhookOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
-from airflow.operators.sensors import ExternalTaskSensor
+from airflow.sensors.external_task import ExternalTaskSensor
 
 from psycopg2 import sql
 from psycopg2.extras import execute_values
@@ -79,7 +79,6 @@ wait_for_here = ExternalTaskSensor(
 ## ShortCircuitOperator Tasks, python_callable returns True or False; False means skip downstream tasks
 check_dow = ShortCircuitOperator(
     task_id='check_dow',
-    provide_context=False,
     python_callable=is_monday,
     op_kwargs={'date_to_pull': '{{ yesterday_ds }}'},
     dag=dag
@@ -87,7 +86,6 @@ check_dow = ShortCircuitOperator(
 
 check_dom = ShortCircuitOperator(
     task_id='check_dom',
-    provide_context=False,
     python_callable=is_day_one,
     op_kwargs={'date_to_pull': '{{ yesterday_ds }}'},
     dag=dag
