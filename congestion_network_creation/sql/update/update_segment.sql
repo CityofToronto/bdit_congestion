@@ -176,9 +176,14 @@ SELECT 		segment_id,
 			PERCENTILE_CONT (0.10) WITHIN GROUP (ORDER BY segment_tt_avg ASC) AS baseline_10pct,
 			PERCENTILE_CONT (0.15) WITHIN GROUP (ORDER BY segment_tt_avg ASC) AS baseline_15pct,
 			PERCENTILE_CONT (0.20) WITHIN GROUP (ORDER BY segment_tt_avg ASC) AS baseline_20pct,
-			PERCENTILE_CONT (0.25) WITHIN GROUP (ORDER BY segment_tt_avg ASC) AS baseline_25pct
+			PERCENTILE_CONT (0.25) WITHIN GROUP (ORDER BY segment_tt_avg ASC) AS baseline_25pct,
+            CASE WHEN highway.segment_id IS NOT NULL 
+                THEN baseline_10pct 
+                ELSE baseline_25pct 
+            END AS baseline_tt
 
 FROM 		segment_60_tt
+LEFT JOIN   congestion.network_segments_highway AS highway USING (segment_id)
 WHERE 		datetime_bin::time >= '07:00:00' AND datetime_bin::time  < '21:00:00' 
 GROUP BY 	segment_id;
 
