@@ -12,7 +12,7 @@ The yearly update will include creating a new segment_links table for the curren
 
 ## Steps to update the network:
 
-1) Check if there is new traffic signal installed by looking at the activation date
+1) Check if there is new traffic signal installed by looking at the activation date, as well as any out of commision traffic signals 
 
 2) Check what has changed in the new map version using [this SQL](find_changes.sql)
     - `congestion.network_nodes`
