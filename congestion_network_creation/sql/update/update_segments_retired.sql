@@ -25,7 +25,26 @@ GROUP BY segment_id, start_vid, end_vid, seg.geom, total_length, highway, start_
 		retired_date, retired_reason, replaced_id;
 
 
+-- Move individual retired segments to the retired table
 
+insert into congestion.network_segments_retired
+select 	segment_id, start_vid, end_vid, seg.geom, total_length, highway, 
+		_s.int_id as start_int, _t.int_id as end_int, 
+		_s.px::int start_px, _t.px::int as end_px, 
+		'22_2' as here_version, '20220705' as centreline_version, 
+		'2023-03-31'::date as retired_date, 'new traffic signal' as retired_reason, 
+		array[7110,7111] as replaced_id, -- to be updated later during re-routing new segments
+		min(dt) as valid_from, max(dt) as valid_to
+
+from congestion.network_segments seg
+
+INNER JOIN congestion.network_segments_daily USING (segment_id) -- to get valid from to date ranges
+INNER JOIN congestion.network_int_px_21_1 _s on start_vid = _s.node_id -- to get equivalent start px and int_id
+INNER JOIN congestion.network_int_px_21_1 _t on end_vid  = _t.node_id -- to get equivalent end px and int_id
+WHERE segment_id  = 1865
+GROUP BY segment_id, start_vid, end_vid, seg.geom, total_length, highway, start_int, end_int, start_px, end_px, here_version, centreline_version, 
+		retired_date, retired_reason, replaced_id;	 
+	 
 -- update retired segments tabls with replaced id
 update  congestion.network_segments_retired
 set replaced_id = replaced
