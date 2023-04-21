@@ -43,9 +43,9 @@ Daily travel time data is stored under the table `congestion.network_segments_da
      | segment_id    | integer | Unique identifier of each segment           | 1029       |
      | dt            | date    | Date in YYYY-MM-DD format                   | 2020-03-07 |
      | hr            | integer | Hour of the day                             |      8      |
-     | tt            | numeric | Average Travel Time on this segment in seconds   | 20.13      |
-     | unadjusted_tt | numeric | Average Travel Time on this segment in seconds adjusted to segment's length where at least 80% link_dir has data | 10.25      |
-     | length_w_data | numeric | Unadjusted average Travel Time on this segment in seconds (sum of travel times for each corresponding link_dir with data)   | 151.3      |
+     | tt            | numeric | Average Travel Time on this segment in seconds adjusted to segment's length where at least 80% link_dir has data    | 20.13      |
+     | unadjusted_tt | numeric | Unadjusted average Travel Time on this segment in seconds (sum of travel times for each corresponding link_dir with data) | 10.25      |
+     | length_w_data | numeric | The sum of length of link_dirs with data on this segment    | 151.3      |
      | is_valid      | boolean | Whether the adjusted travel time is based on at least 80% of link_dir with data| true      |
      | num_bins      | integer | The total number of 5-min bins used for aggregating travel times for this segment  | 23         |
 
