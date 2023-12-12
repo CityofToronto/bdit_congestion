@@ -3,19 +3,39 @@
 -----------------------------------------------------------------------------------------------------------------------------------------
 -- Find segments that needs to be updated due to new traffic signals
 with new_signal as (
-	select ST_Transform(ST_buffer(ST_Transform(geom, 2952), 50), 4326) as geom from bqu.traffic_signal
-	where activationdate >= '2022-04-17')
+	select px, ST_Transform(ST_buffer(ST_Transform(geom, 2952), 50), 4326) as geom 
+	from gis.traffic_signal
+	left join congestion.network_int_px_22_2 a using (px)
+	where activationdate >= '2022-04-17' and a.px is null )
 
-select seg.*
+select distinct px
 from congestion.network_segments seg
-join new_signal on ST_intersects(new_signal.geom, seg.geom)
+join new_signal on ST_intersects(new_signal.geom, seg.geom);
 
 -----------------------------------------------------------------------------------------------------------------------------------------
--- Add new nodes where the traffic signal lies
-INSERT INTO congestion.network_nodes
-SELECT DISTINCT node_id, geom
-FROM  here.routing_nodes_22_2 
-WHERE node_id in (30420738, 30454395, 30454396, 968443982, 30421677, 30421675, 30362945, 30358297, 30356236, 30356237, 30350790)
+-- Add new nodes where the traffic signal lies using nearest neighbour
+-- double check on QGIS to see if the matches are good first
+with new_signal as (
+	select px, ST_Transform(ST_buffer(ST_Transform(geom, 2952), 50), 4326) as bgeom, geom 
+	from gis.traffic_signal
+	left join congestion.network_int_px_22_2 a using (px)
+	where activationdate >= '2022-04-17' and a.px is null )
+
+, new_px AS (
+	select distinct px, new_signal.geom as px_geom
+	from congestion.network_segments seg
+	join new_signal on ST_intersects(new_signal.bgeom, seg.geom))
+
+-- Find new nodes for outdated nodes using nearest neighbour
+insert into  congestion.network_nodes_23			
+select 	node_id, (ST_Dump(geom)).geom
+from 	 new_px
+CROSS JOIN LATERAL (SELECT node_id,
+							geom, 
+							(ST_transform(geom, 2952) <-> ST_Transform(px_geom, 2952)) as dist	
+					FROM here.routing_nodes_23_4
+					ORDER BY (geom <-> px_geom)
+					LIMIT 1) nodes;
 
 -----------------------------------------------------------------------------------------------------------------------------------------
 -- create new network_int_px lookup table for the current map version
