@@ -206,7 +206,82 @@ FROM 		segment_60_tt
 LEFT JOIN   congestion.network_segments_highway AS highway USING (segment_id)
 WHERE 		datetime_bin::time >= '07:00:00' AND datetime_bin::time  < '21:00:00' 
 GROUP BY 	segment_id;
+-----------------------------------------------------------------------------------------------------------------------------------------
+-- Often there are segments without baseline cause it made up with old links
+-- we will have to recreate those segments using old link
 
+with missing_seg AS (
+	select segment_id, start_vid, end_vid
+    from (select * from congestion.network_segments_23_4 where segment_id >7113) a
+	left join (select * from congestion.network_baseline where segment_id >7113)temp using (segment_id)
+	where temp.segment_id is null) -- ones that were missing from the previous step
+	
+, results AS(
+	SELECT segment_id, start_vid, end_vid, link_dir, length
+	FROM missing_seg
+	, LATERAL pgr_dijkstra('SELECT id, source::int, target::int, st_length(st_transform(geom, 2952)) as cost 
+						   FROM here.routing_streets_22_2',
+				start_vid, end_vid) results
+	INNER JOIN here.routing_streets_22_2 routing_grid ON id = edge)	-- reroute with old link version
+
+, link_60_tt AS (
+	SELECT 		segment_id,
+				link_dir,
+				datetime_bin(tx, 60) AS datetime_bin,
+				avg(links.length * 0.001/ mean * 3600) AS link_tt,
+				links.length
+				
+	FROM 		here.ta
+	INNER JOIN 	results links USING (link_dir)
+	LEFT JOIN 	ref.holiday hol ON hol.dt = tx::date
+	WHERE 		ta.dt >= '2019-01-01' AND ta.dt < '2020-01-01' AND -- Only aggregating free flow tt using 2019 data 
+				hol.dt IS NULL AND -- exclude holiday dates
+				date_part('isodow'::text, ta.dt)::integer < 6 AND -- include only weekdays
+				tod >= '07:00:00' AND tod <'21:00:00' AND -- only from 7am to 9pm
+				confidence >=30 -- only use high confidence data 
+
+	GROUP BY	segment_id, link_dir, datetime_bin, links.length)
+	
+, segment_60_tt AS (
+	SELECT		segment_id,
+				datetime_bin,
+				total_length / (sum(link_60_tt.length) / sum(link_60_tt.link_tt)) AS segment_tt_avg
+				
+	FROM		link_60_tt
+	INNER JOIN 	congestion.network_segments USING (segment_id)
+	
+	GROUP BY 	datetime_bin, segment_id, total_length
+	HAVING 		sum(link_60_tt.length) >= (total_length * 0.8) )-- where at least 80% of links have data
+
+INSERT INTO congestion.network_baseline	
+SELECT 		segment_id, 
+			PERCENTILE_CONT (0.10) WITHIN GROUP (ORDER BY segment_tt_avg ASC) AS baseline_10pct,
+			PERCENTILE_CONT (0.15) WITHIN GROUP (ORDER BY segment_tt_avg ASC) AS baseline_15pct,
+			PERCENTILE_CONT (0.20) WITHIN GROUP (ORDER BY segment_tt_avg ASC) AS baseline_20pct,
+			PERCENTILE_CONT (0.25) WITHIN GROUP (ORDER BY segment_tt_avg ASC) AS baseline_25pct,
+            CASE WHEN highway.segment_id IS NOT NULL 
+                THEN PERCENTILE_CONT (0.10) WITHIN GROUP (ORDER BY segment_tt_avg ASC) 
+                ELSE PERCENTILE_CONT (0.25) WITHIN GROUP (ORDER BY segment_tt_avg ASC) 
+            END AS baseline_tt
+
+FROM 		segment_60_tt
+LEFT JOIN   congestion.network_segments_highway AS highway USING (segment_id)
+GROUP BY 	segment_id, highway.segment_id;
+-----------------------------------------------------------------------------------------------------------------------------------------
+-- if still missing, find the old baseline and calculate new baseline using the new length
+
+with temp as (
+	select distinct o.segment_id as old_seg, n.segment_id as new_seg
+	from congestion.network_links_22_2 o
+	left join congestion.network_links_23_4 n using (link_dir)
+	where n.segment_id > 7133)
+
+select temp.*, 	o.total_length/baseline_tt as spd, baseline_tt, o.total_length as old_length, 
+    n.total_length as new_length, n.total_length/(o.total_length/baseline_tt) as new_baseline
+from temp
+left join congestion.network_segments o on old_seg = segment_id
+left join congestion.network_baseline b on old_seg = b.segment_id
+left join congestion.network_segments_23_4 n on new_seg = n.segment_id
 -----------------------------------------------------------------------------------------------------------------------------------------
 -- Backfill for those newly created segments
 WITH speed_links AS (
