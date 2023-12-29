@@ -43,6 +43,49 @@ CREATE TABLE congestion.network_int_px_22_2 AS
 
 SELECT * FROM congestion.network_int_px_21_1 -- because no nodes changed in this version
 
+-- add new traffic signal nodes to table
+insert into congestion.network_int_px_23_4
+with new_signal as (
+	select px, traffic_signal.node_id as int_id, ST_Transform(ST_buffer(ST_Transform(geom, 2952), 50), 4326) as bgeom, geom as px_geom
+	from gis.traffic_signal
+	left join congestion.network_int_px_22_2 a using (px) -- where they are not already in old version
+	where activationdate >= '2022-04-17' and a.px is null 	
+        and px != '2617' -- too far away
+    	and px != '2650') -- a ramp
+-- px that are new
+, new_px AS (
+	select distinct px, px_geom, int_id
+	from congestion.network_segments seg
+	join new_signal on ST_intersects(new_signal.bgeom, seg.geom))
+
+-- nodes that are closest to new traffic signal
+, new_nodes AS (
+	select 	node_id::int as node_id, px, int_id
+	from 	 new_px
+	CROSS JOIN LATERAL (SELECT node_id,
+								geom, 
+								(ST_transform(geom, 2952) <-> ST_Transform(px_geom, 2952)) as dist	
+						FROM here.routing_nodes_23_4
+						ORDER BY (geom <-> px_geom)
+						LIMIT 1) nodes)
+, temp as (
+select start_vid as node_id from congestion.network_links_23_4
+union 
+select end_vid from congestion.network_links_23_4)
+
+, missing_nodes AS (
+	select distinct node_id, (ST_dump(a.geom)).geom as node_geom
+	from congestion.network_int_px_22_2
+	right join temp using (node_id)
+	inner join here.routing_nodes_23_4 a using (node_id)
+	where network_int_px_22_2.node_id is null)
+select node_id, case when int_id = 0 then null else int_id end as int_id, px, node_geom, int.geom as ints_geom, null as dist
+from missing_nodes
+left join new_nodes using (node_id)
+left join gis_core.centreline_intersection_point int on intersection_id = int_id
+
+
+    
 -- insert new network_int_px lookup for the nodes we just added
 INSERT INTO  congestion.network_int_px_22_2
 SELECT distinct node_id, int_id , '2610', node.geom, cent.geom, null::double precision as dist
