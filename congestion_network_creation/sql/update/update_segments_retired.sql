@@ -20,7 +20,7 @@ JOIN new_signal on ST_intersects(new_signal.geom, seg.geom) -- where segments in
 INNER JOIN congestion.network_segments_daily USING (segment_id) -- to get valid from to date ranges
 INNER JOIN congestion.network_int_px_21_1 _s on start_vid = _s.node_id -- to get equivalent start px and int_id
 INNER JOIN congestion.network_int_px_21_1 _t on end_vid  = _t.node_id -- to get equivalent end px and int_id
-WHERE segment_id  < 7056
+WHERE segment_id  < 7056 -- only get old segments
 GROUP BY segment_id, start_vid, end_vid, seg.geom, total_length, highway, start_int, end_int, start_px, end_px, here_version, centreline_version, 
 		retired_date, retired_reason, replaced_id;
 

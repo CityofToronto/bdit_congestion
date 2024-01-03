@@ -28,7 +28,7 @@ with new_signal as (
 
 -- Find new nodes for outdated nodes using nearest neighbour
 insert into  congestion.network_nodes_23			
-select 	node_id, (ST_Dump(geom)).geom
+select 	distinct node_id, (ST_Dump(geom)).geom
 from 	 new_px
 CROSS JOIN LATERAL (SELECT node_id,
 							geom, 
