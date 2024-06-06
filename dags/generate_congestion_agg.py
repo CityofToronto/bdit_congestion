@@ -55,8 +55,9 @@ default_args = {'owner':'natalie',
 
 dag = DAG('congestion_aggregation', 
           default_args=default_args, 
-          schedule_interval='30 16 * * * ', # same as pull_here task 
+          schedule_interval=None, # gets triggered by here dag 
           catchup=False,
+          tags=["HERE"]
 )
 
 ## Functions
@@ -67,15 +68,6 @@ def is_day_one(date_to_pull):
         return True
     else: 
         return False
-
-
-## Tasks ##
-## ExternalTaskSensor to wait for pull_here
-wait_for_here = ExternalTaskSensor(task_id='wait_for_here',
-                                   external_dag_id='pull_here',
-                                   external_task_id='pull_here',
-                                   start_date=datetime(2020, 1, 5)
-                                   )
 
 ## ShortCircuitOperator Tasks, python_callable returns True or False; False means skip downstream tasks
 check_dom = ShortCircuitOperator(
@@ -121,4 +113,4 @@ aggregate_cent_monthly = PostgresOperator(sql='''select congestion.generate_cent
                                      retries = 0,
                                      dag=dag)
 
-wait_for_here >> aggregate_daily >> check_dom >> check_monthly >> [aggregate_seg_monthly, aggregate_cent_monthly]
+aggregate_daily >> check_dom >> check_monthly >> [aggregate_seg_monthly, aggregate_cent_monthly]
