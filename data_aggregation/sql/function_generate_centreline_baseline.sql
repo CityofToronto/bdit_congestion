@@ -1,9 +1,10 @@
 CREATE OR REPLACE FUNCTION congestion.generate_centreline_baseline(
-	_yr date)
-    RETURNS void
-    LANGUAGE 'sql'
-    COST 100
-    VOLATILE SECURITY DEFINER PARALLEL UNSAFE
+    _yr date
+)
+RETURNS void
+LANGUAGE sql
+COST 100
+VOLATILE SECURITY DEFINER PARALLEL UNSAFE
 AS $BODY$
 
 WITH link_60_tt AS (
@@ -63,12 +64,11 @@ GROUP BY 	uid;
 $BODY$;
 
 ALTER FUNCTION congestion.generate_centreline_monthly(date)
-    OWNER TO congestion_admins;
+OWNER TO congestion_admins;
 
 GRANT EXECUTE ON FUNCTION congestion.generate_centreline_monthly(date) TO congestion_admins;
 GRANT EXECUTE ON FUNCTION congestion.generate_centreline_monthly(date) TO congestion_bot;
 COMMENT ON FUNCTION congestion.generate_centreline_monthly(date)
-    IS 'Function that aggregate centreline equivalent of network segments baseline travel time for each year, excluding holidays.';
-	
-	
-	
+IS 'Function that aggregate centreline equivalent of network segments baseline travel time for each year, excluding holidays.';
+
+

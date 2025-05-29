@@ -1,10 +1,10 @@
-
 CREATE OR REPLACE FUNCTION congestion.generate_centreline_monthly(
-	_dt date)
-    RETURNS void
-    LANGUAGE 'sql'
-    COST 100
-    VOLATILE SECURITY DEFINER PARALLEL UNSAFE
+    _dt date
+)
+RETURNS void
+LANGUAGE sql
+COST 100
+VOLATILE SECURITY DEFINER PARALLEL UNSAFE
 AS $BODY$ 
     
 	INSERT INTO congestion.centreline_monthly
@@ -57,9 +57,9 @@ AS $BODY$
 $BODY$;
 
 ALTER FUNCTION congestion.generate_centreline_monthly(date)
-    OWNER TO congestion_admins;
+OWNER TO congestion_admins;
 
 GRANT EXECUTE ON FUNCTION congestion.generate_centreline_monthly(date) TO congestion_admins;
 GRANT EXECUTE ON FUNCTION congestion.generate_centreline_monthly(date) TO congestion_bot;
 COMMENT ON FUNCTION congestion.generate_centreline_monthly(date)
-    IS 'Function that aggregate centreline equivalent of network segments hourly travel time for each month, excluding holidays. Runs every month through an airflow process.';	
+IS 'Function that aggregate centreline equivalent of network segments hourly travel time for each month, excluding holidays. Runs every month through an airflow process.';

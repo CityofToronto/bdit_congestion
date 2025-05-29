@@ -1,8 +1,8 @@
 CREATE OR REPLACE FUNCTION congestion.create_yearly_monthly_centreline_table(yyyy text)
-    RETURNS void
-    LANGUAGE 'plpgsql'
-    COST 100
-    VOLATILE STRICT SECURITY DEFINER PARALLEL UNSAFE
+RETURNS void
+LANGUAGE plpgsql
+COST 100
+VOLATILE STRICT SECURITY DEFINER PARALLEL UNSAFE
 AS $BODY$
 
 DECLARE 
@@ -29,7 +29,7 @@ END;
 $BODY$;
 
 ALTER FUNCTION congestion.create_yearly_monthly_centreline_table(text)
-    OWNER TO congestion_admins;
+OWNER TO congestion_admins;
 
 COMMENT ON FUNCTION congestion.create_yearly_monthly_centreline_table(text)
-    IS 'Function to create yearly partitioned table for centreline_monthly. Scheduled to execute at the end of the year with EOY maintanence airflow DAG.';
+IS 'Function to create yearly partitioned table for centreline_monthly. Scheduled to execute at the end of the year with EOY maintanence airflow DAG.';
