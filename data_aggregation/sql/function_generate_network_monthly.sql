@@ -6,30 +6,37 @@ LANGUAGE sql
 COST 100
 VOLATILE SECURITY DEFINER PARALLEL UNSAFE
 AS $BODY$ 
-    
-	INSERT INTO congestion.network_segments_monthly
-	SELECT 		segment_id, 
-				date_trunc('month', dt) AS mth, 
-				hr,
-				CASE WHEN extract(isodow from dt) <6 then 'Weekday'
-					ELSE 'Weekend' END AS day_type,
-				round(avg(tt), 2) AS avg_tt,
-				PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY tt) AS median_tt,
-				PERCENTILE_CONT(0.85) WITHIN GROUP (ORDER BY tt) AS pct_85_tt,
-				PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY tt) AS pct_95_tt,
-				round(min(tt), 2) AS min_tt,
-				round(max(tt), 2) AS max_tt,
-				stddev(tt) as std_dev,
-				sum(num_bins)::int AS num_bins
-    
-    FROM  		congestion.network_segments_daily
-	LEFT JOIN 	ref.holiday USING (dt) -- exclude holidays
-    WHERE 		(dt >= _dt AND dt < _dt + INTERVAL '1 month') AND 
-				holiday.dt IS NULL AND
-                is_valid IS true
-    
-	GROUP BY    segment_id, mth, hr, day_type
-	ORDER BY    segment_id, mth, hr, day_type
+INSERT INTO congestion.network_segments_monthly
+SELECT
+    segment_id,
+    date_trunc('month', dt) AS mth,
+    hr,
+    CASE
+        WHEN extract(ISODOW FROM dt) < 6 THEN 'Weekday'
+        ELSE 'Weekend'
+    END AS day_type,
+    round(avg(tt), 2) AS avg_tt,
+    PERCENTILE_CONT(0.5) WITHIN GROUP (
+        ORDER BY tt
+    ) AS median_tt,
+    PERCENTILE_CONT(0.85) WITHIN GROUP (
+        ORDER BY tt
+    ) AS pct_85_tt,
+    PERCENTILE_CONT(0.95) WITHIN GROUP (
+        ORDER BY tt
+    ) AS pct_95_tt,
+    round(min(tt), 2) AS min_tt,
+    round(max(tt), 2) AS max_tt,
+    stddev(tt) AS std_dev,
+    sum(num_bins)::int AS num_bins
+FROM congestion.network_segments_daily
+LEFT JOIN ref.holiday USING (dt) -- exclude holidays
+WHERE
+    (dt >= _dt AND dt < _dt + interval '1 month')
+    AND holiday.dt IS NULL
+    AND is_valid IS TRUE
+GROUP BY segment_id, mth, hr, day_type
+ORDER BY segment_id, mth, hr, day_type
 
 $BODY$;
 
