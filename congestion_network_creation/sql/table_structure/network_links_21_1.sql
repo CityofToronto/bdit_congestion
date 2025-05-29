@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS congestion.network_links_21_1
 );
 
 ALTER TABLE congestion.network_links_21_1
-    OWNER to congestion_admins;
+OWNER TO congestion_admins;
 
 COMMENT ON TABLE congestion.network_links_21_1
-    IS 'A lookup table for the congestion network, contains segment_id and link_dir (21_1 map version) lookup.';
+IS 'A lookup table for the congestion network, contains segment_id and link_dir (21_1 map version) lookup.';

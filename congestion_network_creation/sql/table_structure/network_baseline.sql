@@ -8,4 +8,4 @@ CREATE TABLE IF NOT EXISTS congestion.network_baseline
 );
 
 ALTER TABLE congestion.network_baseline
-    OWNER to congestion_admins;
+OWNER TO congestion_admins;

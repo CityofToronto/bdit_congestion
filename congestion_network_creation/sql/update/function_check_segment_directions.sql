@@ -3,12 +3,23 @@
 -- DROP FUNCTION IF EXISTS congestion.check_segment_directions(text);
 
 CREATE OR REPLACE FUNCTION congestion.check_segment_directions(
-	version_suffix text)
-    RETURNS TABLE(segment_id bigint, start_vid bigint, end_vid bigint, proposed_source bigint, proposed_target bigint, o1_dir text, o2_dir text, o3_dir text, o4_dir text) 
-    LANGUAGE 'plpgsql'
-    COST 100
-    VOLATILE STRICT SECURITY DEFINER PARALLEL UNSAFE
-    ROWS 1000
+    version_suffix text
+)
+RETURNS TABLE (
+    segment_id bigint,
+    start_vid bigint,
+    end_vid bigint,
+    proposed_source bigint,
+    proposed_target bigint,
+    o1_dir text,
+    o2_dir text,
+    o3_dir text,
+    o4_dir text
+)
+LANGUAGE plpgsql
+COST 100
+VOLATILE STRICT SECURITY DEFINER PARALLEL UNSAFE
+ROWS 1000
 
 AS $BODY$
 
@@ -75,7 +86,7 @@ END;
 $BODY$;
 
 ALTER FUNCTION congestion.check_segment_directions(text)
-    OWNER TO congestion_admins;
+OWNER TO congestion_admins;
 
 COMMENT ON FUNCTION congestion.check_segment_directions(text)
-    IS 'Checks directionality inconsistencies in segment_id geometry';
+IS 'Checks directionality inconsistencies in segment_id geometry';

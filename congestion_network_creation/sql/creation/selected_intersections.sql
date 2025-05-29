@@ -2,77 +2,109 @@
 -- that will be used in creating the congestion network 2.0
 -- we will than find the here nodes that represents these chosen geometries 
 
-CREATE MATERIALIZED VIEW congestion.selected_intersections AS 
+CREATE MATERIALIZED VIEW congestion.selected_intersections AS
 -- first select the centreline that we are interested
 -- aka minor arterial and above
-With interested_class AS (
-	select geo_id, lf_name, fnode, tnode, fcode_desc, geom, 
-	ST_transform(ST_buffer(ST_transform(geom, 2952), 10), 4326) as b_geom
-	from gis.centreline_20220705 
-	where fcode_desc in ('Expressway', 
-						 'Major Arterial', 
-						 'Minor Arterial'))
-                         
+WITH interested_class AS (
+    SELECT
+        geo_id,
+        lf_name,
+        fnode,
+        tnode,
+        fcode_desc,
+        geom,
+        ST_transform(ST_buffer(ST_transform(geom, 2952), 10), 4326) AS b_geom
+    FROM gis.centreline_20220705
+    WHERE fcode_desc IN (
+        'Expressway',
+        'Major Arterial',
+        'Minor Arterial'
+    )
+),
+
 -- grab all nodes that make up the centrelines we want
-, interested_int as (
-	select fnode as int_id
-	from interested_class
-	union all
-	select tnode as int_id
-	from interested_class)
-	
+interested_int AS (
+    SELECT fnode AS int_id
+    FROM interested_class
+    UNION ALL
+    SELECT tnode AS int_id
+    FROM interested_class
+),
+
 -- select intersections that were used more or equal 3 times
 -- aka intersections
 -- and 1 time, aka the end of the road
-, intersection_int as (
-	select int_id
-	from interested_int
-	group by int_id
-	having count(int_id) >=3 or count(int_id) = 1) 
-	
+intersection_int AS (
+    SELECT int_id
+    FROM interested_int
+    GROUP BY int_id
+    HAVING count(int_id) >= 3 OR count(int_id) = 1
+),
+
 -- selection of px with int_ids that doesnt match with our version of intersections
 -- which can include midblocks and too updated int_id 
-, other_px as (
-	select node_id, px, traffic_signal.geom 
-	from gis.traffic_signal
-    left join gis.centreline_intersection_20220705 on node_id = int_id
-	where int_id is null )
-	
+other_px AS (
+    SELECT
+        node_id,
+        px,
+        traffic_signal.geom
+    FROM gis.traffic_signal
+    LEFT JOIN gis.centreline_intersection_20220705 ON node_id = int_id
+    WHERE int_id IS NULL
+),
+
 -- select all intersections 
-, selected_int as (
+selected_int AS (
 -- intersections that are minor arterial and above
 -- and their equivalent px if exist 
-	select int_id, px
-	from intersection_int
-	left join gis.traffic_signal on node_id = int_id
-	union
--- traffic signals with int_ids that are 
--- in the current centreline intersection version
-	(select node_id, px
-	from gis.traffic_signal
-	except
-	select node_id, px 
-	from other_px))
+    SELECT
+        int_id,
+        px
+    FROM intersection_int
+    LEFT JOIN gis.traffic_signal ON node_id = int_id
+    UNION
+    -- traffic signals with int_ids that are 
+    -- in the current centreline intersection version
+    (
+        SELECT
+            node_id,
+            px
+        FROM gis.traffic_signal
+        EXCEPT
+        SELECT
+            node_id,
+            px
+        FROM other_px
+    )
+),
 
 -- join the selected int and other traffic signals together
-, all_int as (
-	select inte.int_id, px, inte.geom
-	from selected_int
-	inner join gis.centreline_intersection_20220705 inte using (int_id)
-	union all
-	select null as int_id, px, other_px.geom
-	from other_px)
+all_int AS (
+    SELECT
+        inte.int_id,
+        px,
+        inte.geom
+    FROM selected_int
+    INNER JOIN gis.centreline_intersection_20220705 AS inte USING (int_id)
+    UNION ALL
+    SELECT
+        NULL AS int_id,
+        px,
+        other_px.geom
+    FROM other_px
+)
 
 -- selecting only the intersections within a 10m buffer of centreline 
 -- mainly to get rid of traffic signals that are not on 
 -- the fcode that we want
-select distinct int_id, 
-				px, 
-				all_int.geom
-from   			all_int
-inner join 		interested_class on ST_within(all_int.geom, b_geom); 
+SELECT DISTINCT
+    int_id,
+    px,
+    all_int.geom
+FROM all_int
+INNER JOIN interested_class ON ST_within(all_int.geom, b_geom);
 
-COMMENT ON materialized view congestion.selected_intersections IS 'Centreline intersections and traffic signals selected for congestion network routing. Created on 2022-05-17. '
+COMMENT ON MATERIALIZED VIEW congestion.selected_intersections IS 'Centreline intersections and traffic signals selected for congestion network routing. Created on 2022-05-17. '
 
 
 

@@ -1,15 +1,16 @@
 CREATE OR REPLACE FUNCTION congestion.get_segments_btwn_nodes(
-	start_node integer,
-	end_node integer,
-	OUT start_node integer,
-	OUT end_node integer,
-	OUT segment_list int[],
-	OUT length numeric,
-	OUT geom geometry)
-    RETURNS record
-    LANGUAGE 'sql'
-    COST 100
-    STABLE STRICT PARALLEL UNSAFE
+    start_node integer,
+    end_node integer,
+    OUT start_node integer,
+    OUT end_node integer,
+    OUT segment_list int [],
+    OUT length numeric,
+    OUT geom geometry
+)
+RETURNS record
+LANGUAGE sql
+COST 100
+STABLE STRICT PARALLEL UNSAFE
 AS $BODY$
 WITH results as (
 	SELECT * 
@@ -22,11 +23,10 @@ inner join congestion.network_segments on edge=segment_id
 $BODY$;
 
 COMMENT ON FUNCTION congestion.get_segments_btwn_nodes(integer, integer)
-    IS 'Function created for routing segments in the network_segments using here nodes.  ';
+IS 'Function created for routing segments in the network_segments using here nodes.  ';
 
 ALTER FUNCTION congestion.get_segments_btwn_nodes(integer, integer)
-    OWNER TO congestion_admins;
-    
-    
+OWNER TO congestion_admins;
+
+
 GRANT EXECUTE ON FUNCTION congestion.get_segments_btwn_nodes(integer, integer) TO bdit_humans;
-    
