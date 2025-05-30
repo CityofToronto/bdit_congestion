@@ -66,7 +66,7 @@ def congestion_aggregation():
     ## Postgres Tasks
     # Task to aggregate segment level tt daily
     aggregate_daily = SQLExecuteQueryOperator(
-        sql='''SELECT congestion.generate_network_daily('{{ ds }}'::date - 1) ''',
+        sql='''SELECT congestion.generate_network_daily_spd('{{ ds }}'::date - 1) ''',
         task_id='aggregate_daily',
         conn_id='congestion_bot',
         autocommit=True,
