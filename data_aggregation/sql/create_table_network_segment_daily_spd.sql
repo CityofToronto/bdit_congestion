@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS congestion.network_segments_daily_spd
     total_length numeric,
     is_valid boolean,
     num_bin bigint
-);
+) PARTITION BY RANGE (dt);
 
 ALTER TABLE IF EXISTS congestion.network_segments_daily_spd OWNER TO congestion_admins;
 GRANT SELECT ON TABLE congestion.network_segments_daily_spd TO bdit_humans; -- maybe they should only have access to travel time?
