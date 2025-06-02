@@ -3,12 +3,13 @@
 -- DROP FUNCTION IF EXISTS congestion.create_yyyymm_partitions(text, integer, integer);
 
 CREATE OR REPLACE FUNCTION congestion.create_yyyymm_partitions(
-	year_ integer,
-	mm_ integer)
-    RETURNS void
-    LANGUAGE 'plpgsql'
-    COST 100
-    VOLATILE SECURITY DEFINER PARALLEL UNSAFE
+    year_ integer,
+    mm_ integer
+)
+RETURNS void
+LANGUAGE plpgsql
+COST 100
+VOLATILE SECURITY DEFINER PARALLEL UNSAFE
 AS $BODY$
 
 DECLARE
@@ -43,13 +44,15 @@ END;
 $BODY$;
 
 ALTER FUNCTION congestion.create_yyyymm_partitions(integer, integer)
-    OWNER TO congestion_admins;
+OWNER TO congestion_admins;
 
-GRANT EXECUTE ON FUNCTION congestion.create_yyyymm_partitions(integer, integer) TO PUBLIC;
+GRANT EXECUTE ON FUNCTION congestion.create_yyyymm_partitions(integer, integer) TO public;
 
-GRANT EXECUTE ON FUNCTION congestion.create_yyyymm_partitions(integer, integer) TO congestion_admins;
+GRANT EXECUTE ON FUNCTION congestion.create_yyyymm_partitions(
+    integer, integer
+) TO congestion_admins;
 
 GRANT EXECUTE ON FUNCTION congestion.create_yyyymm_partitions(integer, integer) TO congestion_bot;
 
 COMMENT ON FUNCTION congestion.create_yyyymm_partitions(integer, integer)
-    IS '''Create a new month partition under the parent year table network_segments_daily_spd''';
+IS '''Create a new month partition under the parent year table network_segments_daily_spd''';

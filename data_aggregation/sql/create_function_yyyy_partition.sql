@@ -3,11 +3,12 @@
 -- DROP FUNCTION IF EXISTS congestion.create_yyyy_volumes_partition(text, integer, text);
 
 CREATE OR REPLACE FUNCTION congestion.create_yyyy_volumes_partition(
-	year_ integer)
-    RETURNS void
-    LANGUAGE 'plpgsql'
-    COST 100
-    VOLATILE SECURITY DEFINER PARALLEL UNSAFE
+    year_ integer
+)
+RETURNS void
+LANGUAGE plpgsql
+COST 100
+VOLATILE SECURITY DEFINER PARALLEL UNSAFE
 AS $BODY$
 
 DECLARE
@@ -38,14 +39,14 @@ END;
 $BODY$;
 
 ALTER FUNCTION congestion.create_yyyy_volumes_partition(integer)
-    OWNER TO congestion_admins;
+OWNER TO congestion_admins;
 
 GRANT EXECUTE ON FUNCTION congestion.create_yyyy_volumes_partition(integer) TO congestion_admins;
 
 GRANT EXECUTE ON FUNCTION congestion.create_yyyy_volumes_partition(integer) TO congestion_bot;
 
-REVOKE ALL ON FUNCTION congestion.create_yyyy_volumes_partition(integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION congestion.create_yyyy_volumes_partition(integer) FROM public;
 
 COMMENT ON FUNCTION congestion.create_yyyy_volumes_partition(integer)
-    IS 'Create a new year partition under the parent table network_segment_daily_spd.
+IS 'Create a new year partition under the parent table network_segment_daily_spd.
 Only to be used for congestion network daily aggregated speed table. ';
