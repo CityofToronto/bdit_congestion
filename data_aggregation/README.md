@@ -31,11 +31,13 @@ Aggregation steps:
 
 - Ensure at least 80% of the segment length has valid speed observations (`is_valid` boolean flag).
 
-- Calculats the average speed as a length-weighted harmonic mean. 
+- Calculates the average speed as a length-weighted harmonic mean. 
 
 3) Inserts data with retired segment logic
 
-- The results are inserted into `congestion.network_segments_daily_spd` with logic to include retired segments, as long as the input date falls within their valid range. This allows historical data to be included even for segments that are no longer active.
+- The results are inserted into `congestion.network_segments_daily_spd` with logic to include retired segments, as long as the input date falls within their valid range. This allows historical data to be included even for segments that are no longer active. 
+
+- For example, segment A was active in the map version 22_2, but after map version 23_4, there is a new traffic signal that would split segment A into two segments (segment B and C). Segment A would then be retired, and will only have data till the day it was retired. Starting from map version 23_4, segment A will no long have data in `congestion.network_segments_daily_spd`, and will be replaced with data for segment B and C. However, for dates prior to the map changing to 23_4, we still need data for Segment A. See more about retiring segments [here](../congestion_network_creation/sql/update/README.md).
 
 Pre-aggregation checks:
 

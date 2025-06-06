@@ -21,7 +21,7 @@ BEGIN
 
     SELECT sv.street_version
     INTO street_version
-    FROM here.street_valid_range sv
+    FROM here.street_valid_range_path sv
     WHERE _dt <@ sv.valid_range;
 
     IF street_version IS NULL THEN
@@ -34,21 +34,21 @@ BEGIN
     EXECUTE format($$
         WITH speed_links AS (
             SELECT
-                segment_id,
-                link_dir,
+                links.segment_id,
+                links.link_dir,
                 links.length AS link_length,
-                dt,
-                extract(hour from tod)::int AS hr,
-                harmean(mean) AS spd_avg,
-                COUNT(tx)::int as num_bin
+                ta_path.dt,
+                extract(hour from ta_path.tod)::int AS hr,
+                harmean(ta_path.mean) AS spd_avg,
+                COUNT(ta_path.tx)::int AS num_bin
             FROM here.ta_path
-            INNER JOIN congestion.%1$I links USING (link_dir)
+            INNER JOIN congestion.%1$I AS links USING (link_dir)
             WHERE
-                dt >= %2$L
-                AND dt < %2$L
+                ta_path.dt >= %2$L::date
+                AND ta_path.dt < %2$L::date + INTERNAL '1 day'
             GROUP BY
-                segment_id,
-                link_dir,
+                links.segment_id,
+                links.link_dir,
                 dt,
                 hr,
                 links.length
@@ -60,29 +60,29 @@ BEGIN
         */
         tt_hr AS (
             SELECT
-                segment_id, 
-                dt,
-                hr,
-                avg(SUM(link_length / spd_avg  * 3.6 )/SUM(link_length)) AS spd,
-                SUM(link_length) AS length_w_data, -- Sum of link_dir with data's length  
-                total_length,
-                CASE WHEN SUM(link_length) >= 0.8 * total_length 
+                speed_links.segment_id, 
+                speed_links.dt,
+                speed_links.hr,
+                SUM(speed_links.link_length)/SUM(speed_links.link_length / speed_links.spd_avg  * 3.6 ) AS spd,
+                SUM(speed_links.link_length) AS length_w_data, -- Sum of link_dir with data's length  
+                get_length.total_length,
+                CASE WHEN SUM(speed_links.link_length) >= 0.8 * get_length.total_length 
                     THEN True
                     ELSE False
                 END AS is_valid, -- Adjusted tt valid to use if this value is True
-                sum(num_bin) AS num_bin
+                sum(speed_links.num_bin) AS num_bin
             FROM speed_links
             -- using length of the most updated version
             INNER JOIN (
-                SELECT segment_id, sum(length) AS total_length
+                SELECT segment_id, sum(length) AS get_length.total_length
                 FROM congestion.%1$I
                 GROUP BY segment_id
-            ) AS a USING (segment_id)
+            ) AS get_length USING (segment_id)
             GROUP BY
-                segment_id,
-                dt,
-                hr,
-                total_length
+                speed_links.segment_id,
+                speed_links.dt,
+                speed_links.hr,
+                get_length.total_length
         )
 
         /*
@@ -93,7 +93,7 @@ BEGIN
             tt_hr.segment_id,
             tt_hr.dt,
             tt_hr.hr,
-            round(tt_hr.spd_avg, 2) as spd,
+            round(tt_hr.spd, 2) as spd,
             tt_hr.length_w_data,
             tt_hr.total_length,
             tt_hr.is_valid,
@@ -103,8 +103,9 @@ BEGIN
         LEFT JOIN congestion.network_segments_retired retired USING (segment_id)
         WHERE
             retired.segment_id IS NULL
-            OR (
-                %2$L >= valid_from
+            OR ( 
+                retired.segment_id IS NOT NULL
+                AND %2$L >= valid_from
                 AND %2$L < valid_to
             );
         $$ , network_table, _dt);

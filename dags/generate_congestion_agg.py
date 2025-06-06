@@ -73,6 +73,7 @@ def congestion_aggregation():
         task_id='aggregate_daily',
         conn_id='congestion_bot',
         autocommit=True,
+        trigger_rule='none_failed',
         retries = 0)
     
     # Data checks TBD 
