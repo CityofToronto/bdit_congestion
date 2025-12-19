@@ -4,7 +4,7 @@ import logging
 import pendulum
 from datetime import datetime, timedelta
 
-from airflow.decorators import dag, task
+from airflow.sdk import dag, task
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 
 file_path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
