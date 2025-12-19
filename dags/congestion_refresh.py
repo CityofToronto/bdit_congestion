@@ -45,7 +45,7 @@ def congestion_refresh():
     aggregate_citywide_tti = SQLExecuteQueryOperator(
         sql='''select congestion.generate_citywide_tti_daily('{{ ds }}'::date - 1) ''',
         task_id='aggregate_citywide_tti',
-        conn_id='natalie',
+        conn_id='congestion_bot',
         autocommit=True,
         retries = 0
     )
@@ -54,7 +54,7 @@ def congestion_refresh():
     aggregate_segments_tti_weekly = SQLExecuteQueryOperator(
         sql='''select congestion.generate_segments_tti_weekly('{{ ds }}'::date - 1)''',
         task_id='aggregate_segments_tti_weekly',
-        conn_id='natalie',
+        conn_id='congestion_bot',
         autocommit=True,
         retries = 0
     )
