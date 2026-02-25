@@ -65,7 +65,9 @@ select
 	dir[1], geom  from second_pass
 	where array_length(segment_id, 1) = 2 and start_Vid is not null and end_vid is not null
 	and start_vid != end_vid)
-
+    
+-- deal with when we need to get with of
+-- two continous nodes
 , two_nodes_case as (
 SELECT  distinct id, 
 max(case when start_vid = ANY(seq_node) then null else start_vid end) as source,
@@ -102,7 +104,42 @@ on  segment_id = ANY(segment_ids)
 order by new_segment_id; 
 
 delete from congestion.temp_network_links_24_4
-where segment_id = ANY(select unnest(segment_ids) from congestion.segments_retired_from_midblock)
+where segment_id = ANY(select unnest(segment_ids) from congestion.segments_retired_from_midblock);
+
+-- manually delete the one on allen that should've been kept
+delete from congestion.temp_network_links_24_4
+where segment_id = 7388;
+insert into congestion.temp_network_links_24_4
+select * from congestion.network_links_24_4
+where segment_id in (1418,
+5401)
 
 
+-- delete merged segments in network_segments
+with need_delete as (
+select distinct segment_id from  congestion.network_links_24_4
+except
+select distinct segment_id from  congestion.temp_network_links_24_4)
+delete from  congestion.temp_network_segments_24_4
+where segment_id in (
+select segment_id from need_delete
+inner join congestion.network_segments_24_4 using (segment_id))
 
+-- add new merged segments to network_segmentws
+
+with need_update as (
+select distinct segment_id from  congestion.temp_network_links_24_4
+except
+select distinct segment_id from  congestion.network_links_24_4)
+insert into congestion.temp_network_segments_24_4
+select segment_id,
+    start_vid,
+    end_vid,
+    ST_linemerge(ST_union(geom)) AS geom,
+    round(ST_length(ST_transform(ST_linemerge(ST_union(geom)), 2952))::numeric, 2) AS total_length,
+	false as highway, -- checked the deleted ones
+	gis.direction_from_line(ST_linemerge(ST_union(geom)))
+	from congestion.temp_network_links_24_4
+inner join need_update using (segment_id)
+GROUP BY segment_id, start_vid, end_vid
+ORDER BY segment_id, start_vid, end_vid;

@@ -1,15 +1,20 @@
+-- FUNCTION: congestion.route_contracted_path(bigint, bigint, bigint[])
+
+-- DROP FUNCTION IF EXISTS congestion.route_contracted_path(bigint, bigint, bigint[]);
+
 CREATE OR REPLACE FUNCTION congestion.route_contracted_path(
-    _node_start      bigint,
-    _node_end        bigint,
-    _contracted_ver  bigint[], 
-    OUT _node_start_out bigint,
-    OUT _node_end_out   bigint,
-    OUT links           bigint[],
-    OUT geom            geometry
-)
-RETURNS record
-LANGUAGE plpgsql
-AS $func$
+	_node_start bigint,
+	_node_end bigint,
+	_contracted_ver bigint[],
+	OUT _node_start_out bigint,
+	OUT _node_end_out bigint,
+	OUT links bigint[],
+	OUT geom geometry)
+    RETURNS record
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
 DECLARE
     edges_sql text;
 BEGIN
@@ -19,7 +24,7 @@ BEGIN
              source::int,
              target::int,
              cost_length::int AS cost
-         FROM congestion.routing_centreline_directional 
+         FROM gis_core.routing_centreline_directional_higher_rc 
          WHERE source = ANY(%L::int[]) AND target = ANY(%L::int[])',
         _contracted_ver,
         _contracted_ver
@@ -27,8 +32,10 @@ BEGIN
 
     WITH results AS (
         SELECT *
-        FROM pgr_dijkstra(
+        FROM pgr_trsp(
             edges_sql,
+			'SELECT path, cost
+        	FROM gis_core.centreline_routing_restrictions_higher_rc', 
             _node_start,
             _node_end,
             true
@@ -41,7 +48,7 @@ BEGIN
             array_agg(r.centreline_id ORDER BY path_seq) AS link_arr,
             ST_LineMerge(ST_Union(r.geom)) AS geom_out
         FROM results d
-        JOIN  congestion.routing_centreline_directional r ON d.edge = r.id
+        JOIN  gis_Core.routing_centreline_directional_higher_rc r ON d.edge = r.id
     )
     SELECT
         start_node,
@@ -57,8 +64,7 @@ BEGIN
 
     RETURN;
 END;
-$func$;
-
+$BODY$;
 
 ALTER FUNCTION congestion.route_contracted_path(bigint, bigint, bigint[])
     OWNER TO congestion_admins;
