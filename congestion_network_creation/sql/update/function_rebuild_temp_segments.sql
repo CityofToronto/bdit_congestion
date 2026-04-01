@@ -3,8 +3,8 @@ RETURNS void
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    temp_link_table text := format('temp_network_links_%s', new_ver);
-	temp_table text := format('temp_network_segments_%s', new_ver);
+    temp_link_table text := 'temp_network_links_%s'|| new_ver;
+	temp_table text := 'temp_network_segments_%s'|| new_ver;
 BEGIN
 
 EXECUTE format(
