@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS congestion.congestion_segments
     end_vid bigint,
     total_length double precision,
 	dir text, 
+    highway boolean,
 	geom geometry,
     ver_id text,
     CONSTRAINT unique_segment_id_ver_id UNIQUE (segment_id, ver_id)

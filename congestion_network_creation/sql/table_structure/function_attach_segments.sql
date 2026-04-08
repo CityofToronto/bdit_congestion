@@ -20,6 +20,7 @@ BEGIN
                 end_vid,
                 total_length,
                 dir::text,
+                highway,
                 geom,
                 %L AS ver_id
          FROM congestion.%I
