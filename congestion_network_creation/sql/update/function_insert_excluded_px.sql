@@ -5,7 +5,7 @@ DECLARE
 
 BEGIN
 
-    network_table := 'temp_network_segments_' || ver_id;
+    network_table := 'temp_congestion_segments_' || ver_id;
 
     EXECUTE format(
         'WITH signals AS (
