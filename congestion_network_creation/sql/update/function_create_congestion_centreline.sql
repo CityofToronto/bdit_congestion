@@ -21,7 +21,7 @@ BEGIN
                 SELECT segment_id, from_int, to_int, unnest(centreline_ids) AS centreline_id, geom
                 FROM congestion.%2$s
             ) a
-            LEFT JOIN gis_core.centreline_latest USING (centreline_id)
+            LEFT JOIN gis_core.routing_centreline_directional_higher_rc_20260301 USING (centreline_id)
             WHERE centreline_latest.centreline_id IS NULL
         ),
         new_segments AS (
@@ -58,7 +58,7 @@ BEGIN
                         source::int,
                         target::int,
                         cost_length::int AS cost
-                    FROM gis_core.routing_centreline_directional_higher_rc
+                    FROM gis_core.routing_centreline_directional_higher_rc_20260301
                 $q$,
                 $q$
                     SELECT path, cost
@@ -74,7 +74,7 @@ BEGIN
             array_agg(r.centreline_id ORDER BY path_seq) AS centreline_ids,
             ST_LineMerge(ST_Union(r.geom))               AS geom
         FROM results d
-        JOIN gis_core.routing_centreline_directional_higher_rc r ON d.edge = r.id
+        JOIN gis_core.routing_centreline_directional_higher_rc_20260301 r ON d.edge = r.id
         GROUP BY d.segment_id, d.from_int, d.to_int
     ',
         output_table,   -- %1$s
