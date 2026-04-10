@@ -6,9 +6,9 @@ RETURNS void
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    old_nodes text := 'congestion_nodes_%s'|| old_ver;
-    new_routing text := 'routing_nodes_%s'|| new_ver;
-    temp_table text := 'temp_congestion_nodes_%s'|| new_ver;
+    old_nodes text := 'congestion_nodes_'|| old_ver;
+    new_routing text := 'routing_nodes_'|| new_ver;
+    temp_table text := 'temp_congestion_nodes_'|| new_ver;
 BEGIN
 
 EXECUTE format(

@@ -7,9 +7,9 @@ RETURNS void
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    old_links text := 'congestion_links_%s'|| old_ver;
-    new_routing text := 'routing_streets_%s'|| new_ver;
-    temp_table text := 'temp_network_links_%s'|| new_ver;
+    old_links text := 'congestion_links_'|| old_ver;
+    new_routing text := 'routing_streets_'|| new_ver;
+    temp_table text := 'temp_congestion_links_'|| new_ver;
 BEGIN
 
 ----------------------------------------------------
