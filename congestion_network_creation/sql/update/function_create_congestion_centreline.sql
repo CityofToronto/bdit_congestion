@@ -77,7 +77,7 @@ BEGIN
             array_agg(r.centreline_id ORDER BY path_seq) AS centreline_ids,
             ST_LineMerge(ST_Union(r.geom))               AS geom
         FROM results d
-        JOIN gis_core.routing_centreline_directional_higher_rc_20260301 r ON d.edge = r.id
+        JOIN gis_core.%6$s r ON d.edge = r.id
         GROUP BY d.segment_id, d.from_int, d.to_int
     ',
         output_table,   -- %1$s
