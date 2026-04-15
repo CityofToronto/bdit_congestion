@@ -1,7 +1,9 @@
--- FUNCTION: congestion.rebuild_temp_nodes_lookup(text, text)
-
--- DROP FUNCTION IF EXISTS congestion.rebuild_temp_nodes_lookup(text, text);
-
+---
+---SELECT congestion.rebuild_temp_nodes_lookup(
+---    '24_4' , -- older version
+---	'25_1', -- new version
+---    '20260301') --centreline version
+---
 CREATE OR REPLACE FUNCTION congestion.rebuild_temp_nodes_lookup(
 	old_ver text,
 	new_ver text,
@@ -21,20 +23,21 @@ BEGIN
 
     -- Create the new lookup table from the previous version with existing ints
     EXECUTE format('
-        CREATE TABLE congestion.%s AS
-        SELECT  DISTINCT prev.node_id, 
+        CREATE TABLE congestion.%I AS
+        SELECT  DISTINCT 
+                prev.node_id, 
 				prev.intersection_id, 
 				prev.px, 
 				ic.intersection_desc,
 				ic.highest_order_feature,
-				prev.node_geom,
-				a.geom AS int_geom, 
+				nodes.geom AS geom,
+				COALESCE(a.geom, prev.int_geom) AS int_geom, -- if intersection does not have a geom we use the old one
 				%L AS ver_id	
-        FROM congestion.%s prev
-        INNER JOIN gis_core.centreline_intersection_point_latest a USING (intersection_id)
-		INNER JOIN congestion.%s nodes USING (node_id)
+        FROM congestion.%I prev
+        INNER JOIN congestion.%I nodes USING (node_id)
+        LEFT JOIN gis_core.%I a on a.intersection_id = prev.intersection_id
 		LEFT JOIN gis_core.intersection_classification ic on ic.intersection_id = prev.intersection_id
-    ', new_table, new_ver, prev_table, nodes_table);
+    ', new_table, new_ver, prev_table, nodes_table, intersection_ver);
 
     -- Insert new nodes lookup from previous steps
     EXECUTE format('
@@ -56,5 +59,5 @@ BEGIN
 END;
 $BODY$;
 
-ALTER FUNCTION congestion.rebuild_temp_nodes_lookup(text, text)
+ALTER FUNCTION congestion.rebuild_temp_nodes_lookup(text, text, text)
     OWNER TO congestion_admins;
