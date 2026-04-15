@@ -110,12 +110,13 @@ BEGIN
                     cost
                 FROM results
             )
-            INSERT INTO congestion.%I (segment_id, start_vid, end_vid, geom, total_length)
+            INSERT INTO congestion.%I (segment_id, start_vid, end_vid, geom, dir,total_length)
             SELECT 
                 segment_id,
                 start_vid,
                 end_vid,
                 ST_linemerge(ST_union(geom)),
+                gis.direction_from_line(ST_union(geom)) AS dir,
                 SUM(cost)
             FROM results
             GROUP BY segment_id, start_vid, end_vid
