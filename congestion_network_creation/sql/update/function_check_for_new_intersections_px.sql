@@ -2,15 +2,18 @@
 
 -- DROP FUNCTION IF EXISTS congestion.check_for_new_intersections_px();
 
-CREATE OR REPLACE FUNCTION congestion.check_for_new_intersections_px(
-	)
+CREATE OR REPLACE FUNCTION congestion.check_for_new_intersections_px(centreline_version text)
     RETURNS TABLE(px text, old_int integer, new_int integer, old_dist double precision, new_dist double precision) 
-    LANGUAGE 'sql'
+    LANGUAGE 'plpgsql'
     COST 100
     STABLE PARALLEL UNSAFE
     ROWS 1000
-
 AS $BODY$
+DECLARE
+	centreline_version_table text := 'intersection_' || centreline_version;
+BEGIN
+ -- find if there are any new intersection_ids for these traffic signals that are closer than last time
+EXECUTE format(' 
 with possible_signals as (
 SELECT * FROM congestion.excluded_signals
 where in_network = true and removed_date is null and temp_signal is null)
@@ -22,12 +25,14 @@ FROM possible_signals signals
 CROSS JOIN LATERAL ( 
 SELECT px,signals.geom as px_geom, intersection_id, ints.geom  as int_geom, 
 ST_TRAnsform(signals.geom, 2952)<-> ST_TRAnsform(ints.geom, 2952) as distance
-FROM gis_core.intersection_latest ints 
+FROM gis_core.%I ints 
 ORDER BY ST_TRAnsform(signals.geom, 2952)<-> ST_TRAnsform(ints.geom, 2952)
 limit 1) AS ints
 WHERE signals.closest_int != intersection_id
+ ', centreline_version_table);
+END;
 $BODY$;
 
-ALTER FUNCTION congestion.check_for_new_intersections_px()
+ALTER FUNCTION congestion.check_for_new_intersections_px(centreline_version text)
     OWNER TO congestion_admins;
 
