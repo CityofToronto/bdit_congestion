@@ -16,8 +16,8 @@ DECLARE
 BEGIN
 
     nodes_table := format('temp_int_px_nodes_%s', ver_id);
-    links_table := format('temp_network_links_%s', ver_id);
-    segments_table := format('temp_network_segments_%s', ver_id);
+    links_table := format('temp_congestion_links_%s', ver_id);
+    segments_table := format('temp_congestion_segments_%s', ver_id);
     routing_table := format('routing_streets_%s', ver_id);
 
     -- loop through each node one by one
@@ -107,8 +107,8 @@ BEGIN
                     FROM results
                 ),
                 insert_segments AS (
-                    INSERT INTO congestion.%I (segment_id, start_vid, end_vid, geom, total_length)
-                    SELECT new_segment_id, start_vid, end_vid, ST_LINEMERGE(ST_UNION(geom)), SUM(cost)
+                    INSERT INTO congestion.%I (segment_id, start_vid, end_vid, dir, geom, total_length)
+                    SELECT new_segment_id, start_vid, end_vid, gis.direction_from_line(ST_LINEMERGE(ST_UNION(geom))) AS dir, ST_LINEMERGE(ST_UNION(geom)), SUM(cost)
                     FROM results
                     GROUP BY new_segment_id, start_vid, end_vid
                 ),

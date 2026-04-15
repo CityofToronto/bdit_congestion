@@ -1,4 +1,4 @@
--- SELECT update_congestion_highway('congestion.temp', 'congestion.temp_congestion_centreline_25_5');
+-- SELECT congestion.update_congestion_highway('congestion.temp', 'congestion.temp_congestion_centreline_25_5');
 -- Make sure that centreline lookup table has all centreline matched rows needed
 
 CREATE OR REPLACE FUNCTION congestion.update_congestion_highway(
@@ -31,8 +31,8 @@ BEGIN
          WHERE a.segment_id = %I.segment_id
          AND %I.highway IS DISTINCT FROM a.highway_tf',
         table_to_update,
-		centreline_version_table,
         centreline_lookup,
+		centreline_version_table,
         table_to_update,
         table_to_update
     );
