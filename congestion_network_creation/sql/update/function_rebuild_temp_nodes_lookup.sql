@@ -4,7 +4,8 @@
 
 CREATE OR REPLACE FUNCTION congestion.rebuild_temp_nodes_lookup(
 	old_ver text,
-	new_ver text)
+	new_ver text,
+    centreline_ver text)
     RETURNS void
     LANGUAGE 'plpgsql'
     COST 100
@@ -15,6 +16,7 @@ DECLARE
     prev_table text := 'congestion_nodes_lookup_' || old_ver;
 	nodes_table text := 'temp_congestion_nodes_' || new_ver;
     source_table text := 'temp_int_px_nodes_' || new_ver;
+    intersection_ver text := 'intersection_' || centreline_ver;
 BEGIN
 
     -- Create the new lookup table from the previous version with existing ints
@@ -31,7 +33,7 @@ BEGIN
         FROM congestion.%s prev
         INNER JOIN gis_core.centreline_intersection_point_latest a USING (intersection_id)
 		INNER JOIN congestion.%s nodes USING (node_id)
-		LEFT JOIN gis_core.intersection_classification ic USING (intersection_id)
+		LEFT JOIN gis_core.intersection_classification ic on ic.intersection_id = prev.intersection_id
     ', new_table, new_ver, prev_table, nodes_table);
 
     -- Insert new nodes lookup from previous steps

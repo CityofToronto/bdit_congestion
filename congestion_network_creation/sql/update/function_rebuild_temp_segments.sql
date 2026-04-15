@@ -9,12 +9,14 @@ BEGIN
 
 EXECUTE format(
 'CREATE TABLE congestion.%I AS
-SELECT segment_id,
-       start_vid,
-       end_vid,
-       ST_linemerge(ST_union(geom)) AS geom,
-       %L AS ver_id,
-	   round(ST_length(ST_transform(ST_linemerge(ST_union(geom)), 2952))::numeric, 2) AS total_length
+SELECT  segment_id,
+        start_vid,
+        end_vid,
+        round(ST_length(ST_transform(ST_linemerge(ST_union(geom)), 2952))::numeric, 2) AS total_length,
+        gis.direction_from_line(ST_linemerge(ST_union(geom))) AS dir,
+        NULL AS highway,
+        ST_linemerge(ST_union(geom)) AS geom,
+        %L AS ver_id
 FROM congestion.%I
 group by segment_id,start_vid, end_vid; ',
 temp_table, new_ver, temp_link_table
