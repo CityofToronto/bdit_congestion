@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS gis_core.routing_centreline_directional_higher_rc
 (
     centreline_id integer,
     id bigint,
+    centreline_uid text,
     source integer,
     target integer,
     cost_length numeric,

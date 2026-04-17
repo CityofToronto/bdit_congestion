@@ -11,6 +11,7 @@ BEGIN
 		 'CREATE TABLE gis_core.%I AS
 			 SELECT dup.centreline_id,
 	    concat(row_number() OVER (), dup.dir)::bigint AS id,
+		centreline_id::text||dir_text AS centreline_uid,
 	    dup.source,
 	    dup.target,
 	    dup.cost_length,
@@ -21,7 +22,8 @@ BEGIN
             centreline.to_intersection_id AS target,
             centreline.shape_length AS cost_length,
             centreline.geom,
-            0 AS dir
+            0 AS dir,
+			''T'' AS dir_text
            FROM gis_core.%I centreline
           WHERE centreline.oneway_dir_code >= 0 AND (centreline.feature_code_desc = ANY (ARRAY[''Collector''::text, ''Major Arterial''::text, ''Expressway''::text, ''Major Arterial Ramp''::text, ''Minor Arterial''::text, ''Expressway Ramp''::text, ''Minor Arterial Ramp''::text, ''Pending''::text]))
         UNION
@@ -30,7 +32,8 @@ BEGIN
             centreline.from_intersection_id AS target,
             centreline.shape_length AS cost_length,
             st_reverse(centreline.geom) AS geom,
-            1 AS dir
+            1 AS dir,
+			''F'' AS dir_text
            FROM gis_core.%I centreline
           WHERE centreline.oneway_dir_code <= 0 AND (centreline.feature_code_desc = ANY (ARRAY[''Collector''::text, ''Major Arterial''::text, ''Expressway''::text, ''Major Arterial Ramp''::text, ''Minor Arterial''::text, ''Expressway Ramp''::text, ''Minor Arterial Ramp''::text, ''Pending''::text]))) dup;
 ',
