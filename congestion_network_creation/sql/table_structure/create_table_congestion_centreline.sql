@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS congestion.congestion_centreline
     from_int integer,
 	to_int integer,
 	centreline_ids int[],
+    centreline_uids text[],
 	geom geometry ,
     ver_id text,
     CONSTRAINT unique_segment_id_from_int_to_int_ver_id
