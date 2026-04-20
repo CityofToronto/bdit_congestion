@@ -1,26 +1,24 @@
-CREATE OR REPLACE FUNCTION congestion.get_congestion_segments_btwn_nodes(
-    start_vid integer,
-    end_vid integer,
-    ver_id text DEFAULT NULL,
-    OUT start_node integer,
-    OUT end_node integer,
-    OUT segment_list integer[],
-    OUT length numeric,
-    OUT geom geometry
-)
-RETURNS record
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    congestion_table text;
-BEGIN  
-    -- Decide to use latest or specific version
-    IF ver_id IS NOT NULL THEN
-        congestion_table := format('congestion_segments_%s', ver_id);
-    ELSE
-        congestion_table := 'congestion_segments_latest'; --rmb to create this table
-    END IF;
+-- FUNCTION: congestion.get_congestion_segments_btwn_nodes(integer, integer, text)
 
+-- DROP FUNCTION IF EXISTS congestion.get_congestion_segments_btwn_nodes(integer, integer, text);
+
+CREATE OR REPLACE FUNCTION congestion.get_congestion_segments_btwn_nodes(
+	start_vid integer,
+	end_vid integer,
+	ver_id text DEFAULT NULL::text,
+	OUT start_node integer,
+	OUT end_node integer,
+	OUT segment_list integer[],
+	OUT length numeric,
+	OUT geom geometry)
+    RETURNS record
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+DECLARE
+    congestion_table text := format('congestion_segments_%s', ver_id);
+BEGIN  
    EXECUTE format($f$
         WITH results AS (
             SELECT *
@@ -45,9 +43,14 @@ BEGIN
 	RETURN;
 
 END;
-$$;
+$BODY$;
 
 ALTER FUNCTION congestion.get_congestion_segments_btwn_nodes(integer, integer, text)
-OWNER TO congestion_admins;
+    OWNER TO congestion_admins;
+
+GRANT EXECUTE ON FUNCTION congestion.get_congestion_segments_btwn_nodes(integer, integer, text) TO PUBLIC;
 
 GRANT EXECUTE ON FUNCTION congestion.get_congestion_segments_btwn_nodes(integer, integer, text) TO bdit_humans;
+
+GRANT EXECUTE ON FUNCTION congestion.get_congestion_segments_btwn_nodes(integer, integer, text) TO congestion_admins;
+
