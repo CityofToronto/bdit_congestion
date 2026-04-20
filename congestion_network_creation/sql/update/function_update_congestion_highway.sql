@@ -1,4 +1,4 @@
--- SELECT congestion.update_congestion_highway('congestion.temp', 'congestion.temp_congestion_centreline_25_5');
+-- SELECT congestion.update_congestion_highway(	'temp_congestion_segments_25_1','temp_congestion_centreline_25_1','20260301');
 -- Make sure that centreline lookup table has all centreline matched rows needed
 
 CREATE OR REPLACE FUNCTION congestion.update_congestion_highway(
@@ -6,9 +6,8 @@ CREATE OR REPLACE FUNCTION congestion.update_congestion_highway(
     centreline_lookup text,
     centreline_version text
 )
-RETURNS integer AS $$
+RETURNS void AS $$
 DECLARE
-    v_rows_affected integer;
 	centreline_version_table text:= 'centreline_'||centreline_version;
 BEGIN
     EXECUTE format(
@@ -29,15 +28,23 @@ BEGIN
             HAVING min(feature_code) = 201100
          ) a
          WHERE a.segment_id = %I.segment_id
-         AND %I.highway IS DISTINCT FROM a.highway_tf',
+         AND %I.highway::boolean IS DISTINCT FROM a.highway_tf',
         table_to_update,
         centreline_lookup,
 		centreline_version_table,
         table_to_update,
         table_to_update
     );
-    -- returns the number of rows that changed
-    GET DIAGNOSTICS v_rows_affected = ROW_COUNT;
-    RETURN v_rows_affected;
+
+    EXECUTE format(
+        'UPDATE congestion.%I
+         SET highway = false
+         WHERE highway is null',
+        table_to_update
+    );
+
 END;
 $$ LANGUAGE plpgsql;
+
+ALTER FUNCTION congestion.update_congestion_highway(text, text, text)
+    OWNER TO congestion_admins;
