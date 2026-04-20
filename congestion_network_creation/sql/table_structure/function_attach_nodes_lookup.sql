@@ -19,7 +19,7 @@ BEGIN
 				px,
 				intersection_desc,
 				highest_order_feature,
-				node_geom,
+				geom AS node_geom,
 				int_geom,
                 %L AS ver_id
          FROM congestion.%I
