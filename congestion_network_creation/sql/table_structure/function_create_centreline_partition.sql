@@ -17,8 +17,8 @@ BEGIN
          SELECT segment_id,
                 from_int,
 				to_int,
-				ids AS centreline_ids,
-				uids AS centreline_uids,
+				centreline_ids,
+				centreline_uids,
 				geom,
                 %L AS ver_id
          FROM congestion.%I
