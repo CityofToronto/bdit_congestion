@@ -1,11 +1,10 @@
-CREATE OR REPLACE FUNCTION congestion.insert_excluded_px(px_input text, ver_id TEXT)
+CREATE OR REPLACE FUNCTION congestion.insert_excluded_px(px_input TEXT, ver_id TEXT, centreline_ver TEXT)
 RETURNS VOID  AS $$
 DECLARE
-    network_table TEXT;
+    network_table TEXT := 'temp_congestion_segments_' || ver_id;
+    centreline_table TEXT := 'intersection_' || centreline_ver;
 
 BEGIN
-
-    network_table := 'temp_congestion_segments_' || ver_id;
 
     EXECUTE format(
         'WITH signals AS (
@@ -24,12 +23,14 @@ BEGIN
 		CROSS JOIN LATERAL ( 
 		SELECT px,signals.geom as px_geom, intersection_id as closest_int, ints.geom  as int_geom, 
 		ST_TRAnsform(signals.geom, 2952)<-> ST_TRAnsform(ints.geom, 2952) as dist
-		FROM gis_core.intersection_latest ints 
+		FROM gis_core.%I ints 
 		ORDER BY ST_TRAnsform(signals.geom, 2952)<-> ST_TRAnsform(ints.geom, 2952)
 		limit 1) AS ints ',
         network_table,
-        px_input
+        px_input,
+        centreline_table
     );
 
 END;
 $$ LANGUAGE plpgsql;
+ALTER FUNCTION congestion.insert_excluded_px(px_input TEXT, ver_id TEXT, centreline_ver TEXT) OWNER TO congestion_admins;
