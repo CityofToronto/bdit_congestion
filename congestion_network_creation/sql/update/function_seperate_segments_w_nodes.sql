@@ -133,3 +133,10 @@ BEGIN
     END IF;
 END;
 $BODY$;
+
+
+ALTER FUNCTION congestion.seperate_segments_w_nodes(text, boolean)
+    OWNER TO congestion_admins;
+
+COMMENT ON FUNCTION  congestion.seperate_segments_w_nodes(text, boolean)
+IS 'Functions to separate segment by nodes.';

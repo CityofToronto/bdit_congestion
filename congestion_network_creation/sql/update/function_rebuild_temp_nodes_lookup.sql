@@ -61,3 +61,9 @@ $BODY$;
 
 ALTER FUNCTION congestion.rebuild_temp_nodes_lookup(text, text, text)
     OWNER TO congestion_admins;
+
+COMMENT ON FUNCTION congestion.rebuild_temp_nodes_lookup(text, text, text)
+IS 'Functions to rebuild temp nodes lookup table.';
+
+COMMENT ON FUNCTION congestion.rebuild_temp_nodes_lookup(text, text, text)
+IS 'Functions to rebuild temp nodes lookup table.';

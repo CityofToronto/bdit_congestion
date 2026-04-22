@@ -48,9 +48,8 @@ $BODY$;
 ALTER FUNCTION congestion.get_congestion_segments_btwn_nodes(integer, integer, text)
     OWNER TO congestion_admins;
 
-GRANT EXECUTE ON FUNCTION congestion.get_congestion_segments_btwn_nodes(integer, integer, text) TO PUBLIC;
+COMMENT ON FUNCTION congestion.get_congestion_segments_btwn_nodes(integer, integer, text)
+IS 'Functions to input start and end node_id and return the congestion segments in between those two input.';
 
 GRANT EXECUTE ON FUNCTION congestion.get_congestion_segments_btwn_nodes(integer, integer, text) TO bdit_humans;
-
-GRANT EXECUTE ON FUNCTION congestion.get_congestion_segments_btwn_nodes(integer, integer, text) TO congestion_admins;
 

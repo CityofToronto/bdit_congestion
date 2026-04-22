@@ -1,4 +1,5 @@
 -- Initial Table creation, for updating this layer, see this function
+-- congestion.insert_excluded_px(px_input TEXT, ver_id TEXT, centreline_ver TEXT)
 
 --Add signals that are not included in the current layer
 create table congestion.excluded_signals AS 

@@ -130,5 +130,8 @@ BEGIN
 END;
 $BODY$;
 
+COMMENT ON FUNCTION congestion.add_new_segments(integer, integer, text, text, text, boolean)
+IS 'Add new segments to both link and segments table.';
+
 ALTER FUNCTION congestion.add_new_segments(integer, integer, text, text, text, boolean)
     OWNER TO congestion_admins;

@@ -1,8 +1,4 @@
-
-CREATE OR REPLACE FUNCTION congestion.rebuild_temp_links(
-    old_ver text,
-    new_ver text
-)
+CREATE OR REPLACE FUNCTION congestion.rebuild_temp_links( old_ver text, new_ver text )
 RETURNS void
 LANGUAGE plpgsql
 AS $$
@@ -88,11 +84,7 @@ CROSS JOIN LATERAL pgr_dijkstra(
 INNER JOIN here.%I routing
 ON id = edge;
 ',
-old_links,
-new_routing,
-old_links,
-temp_table,
-new_ver,
+old_links,new_routing,old_links,temp_table,new_ver,
 format(
     'SELECT id, source::int, target::int,
             st_length(st_transform(geom,2952)) AS cost
@@ -103,3 +95,10 @@ new_routing
 
 END;
 $$;
+
+
+COMMENT ON FUNCTION congestion.rebuild_temp_links( old_ver text, new_ver text )
+IS 'Functions to rebuild temp congestion links table.';
+
+ALTER FUNCTION congestion.rebuild_temp_links( old_ver text, new_ver text )
+    OWNER TO congestion_admins;

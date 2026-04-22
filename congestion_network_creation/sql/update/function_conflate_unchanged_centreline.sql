@@ -1,4 +1,3 @@
-
 CREATE OR REPLACE FUNCTION congestion.conflate_unchanged_centreline(
 	old_ver text,
 	new_ver text,
@@ -45,6 +44,9 @@ BEGIN
  
 END;
 $BODY$;
+
+COMMENT ON FUNCTION congestion.conflate_unchanged_centreline(text, text, text)
+IS 'Function to insert unchanged centreline with new geometry to temp_congestion_centreline.';
 
 ALTER FUNCTION congestion.conflate_unchanged_centreline(text, text, text)
     OWNER TO congestion_admins;

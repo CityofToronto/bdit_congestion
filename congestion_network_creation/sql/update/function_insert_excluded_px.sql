@@ -33,4 +33,10 @@ BEGIN
 
 END;
 $$ LANGUAGE plpgsql;
-ALTER FUNCTION congestion.insert_excluded_px(px_input TEXT, ver_id TEXT, centreline_ver TEXT) OWNER TO congestion_admins;
+
+
+COMMENT ON FUNCTION congestion.insert_excluded_px(px_input TEXT, ver_id TEXT, centreline_ver TEXT) 
+IS 'Functions to input excluded px to the excluded signals table.';
+
+ALTER FUNCTION congestion.insert_excluded_px(px_input TEXT, ver_id TEXT, centreline_ver TEXT) 
+    OWNER TO congestion_admins;

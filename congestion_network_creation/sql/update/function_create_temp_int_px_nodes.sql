@@ -56,6 +56,10 @@ BEGIN
     );
     
 END;
+
 $$ LANGUAGE plpgsql;
 
-alter function congestion.create_temp_int_px_nodes(old_ver_id TEXT, new_ver_id TEXT, centreline_ver text) owner to congestion_admins;
+COMMENT ON FUNCTION congestion.create_temp_int_px_nodes(old_ver_id TEXT, new_ver_id TEXT, centreline_ver text)
+IS 'Function to create the temp int px nodes table with new traffic signals';
+
+ALTER FUNCTION congestion.create_temp_int_px_nodes(old_ver_id TEXT, new_ver_id TEXT, centreline_ver text) owner to congestion_admins;

@@ -29,3 +29,6 @@ $$;
 
 ALTER FUNCTION congestion.rebuild_temp_nodes(text, text)
     OWNER TO congestion_admins;
+
+COMMENT ON FUNCTION congestion.rebuild_temp_nodes(text, text)
+IS 'Functions to rebuild temp nodes table.';

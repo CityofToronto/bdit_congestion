@@ -48,3 +48,6 @@ $$ LANGUAGE plpgsql;
 
 ALTER FUNCTION congestion.update_congestion_highway(text, text, text)
     OWNER TO congestion_admins;
+
+COMMENT ON FUNCTION  congestion.update_congestion_highway(text, text, text)
+IS 'Functions to update segments table highway value with centreline road class';

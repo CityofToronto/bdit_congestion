@@ -23,3 +23,9 @@ temp_table, new_ver, temp_link_table
 );
 END;
 $$;
+
+ALTER FUNCTION congestion.rebuild_temp_segments(text)
+    OWNER TO congestion_admins;
+
+COMMENT ON FUNCTION congestion.rebuild_temp_segments(text)
+IS 'Functions to rebuild temp segment table.';

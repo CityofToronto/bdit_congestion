@@ -1,4 +1,3 @@
-
 CREATE OR REPLACE FUNCTION congestion.update_retired_segments(old_ver text, new_ver text)
 RETURNS void
 LANGUAGE plpgsql
@@ -33,3 +32,6 @@ $$;
 
 ALTER FUNCTION congestion.update_retired_segments(text, text)
     OWNER TO congestion_admins;
+
+COMMENT ON FUNCTION  congestion.update_retired_segments(text, text)
+IS 'Functions to insert new retired segments';
