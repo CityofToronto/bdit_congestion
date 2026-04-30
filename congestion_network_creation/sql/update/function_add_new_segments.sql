@@ -6,7 +6,9 @@ SELECT * FROM congestion.add_new_segments(
     'routing_streets_24_4',
     'temp_network_links_24_4',
     'temp_network_segments_24_4',
-    FALSE
+    NULL,                         -- _exclude_links
+    '25_1',                      -- _ver_id
+    TRUE                         -- _dry_run
 );
 '''
 
@@ -20,6 +22,8 @@ CREATE OR REPLACE FUNCTION congestion.add_new_segments(
 	_routing_streets_table text,
 	_temp_network_links_table text,
 	_temp_network_segments_table text,
+    _exclude_links text,
+    _ver_id text,
 	_dry_run boolean DEFAULT false)
     RETURNS TABLE(segment_id bigint, start_vid integer, end_vid integer, link_dir text, geom geometry, cost double precision, id bigint, seq integer, node bigint, edge bigint, agg_cost double precision) 
     LANGUAGE 'plpgsql'
@@ -36,13 +40,21 @@ BEGIN
     EXECUTE format('SELECT COALESCE(MAX(segment_id), 0) FROM congestion.%I', _temp_network_links_table)
     INTO max_segment_id;
  
-    routing_sql := format('SELECT 
-        id, 
-        source::int, 
-        target::int, 
-        ST_LENGTH(ST_TRANSFORM(geom, 2952)) AS cost 
-    FROM here.%I', _routing_streets_table);
-    
+    IF _exclude_links IS NOT NULL THEN    
+        routing_sql := format('SELECT 
+                id, 
+                source::int, 
+                target::int, 
+                ST_LENGTH(ST_TRANSFORM(geom, 2952)) AS cost 
+            FROM here.%I WHERE link_dir != %L', _routing_streets_table, _exclude_links);
+    ELSE
+        routing_sql := format('SELECT 
+            id, 
+            source::int, 
+            target::int, 
+            ST_LENGTH(ST_TRANSFORM(geom, 2952)) AS cost 
+        FROM here.%I', _routing_streets_table);
+    END IF;
     -- Return results from the routing query
     RETURN QUERY
     EXECUTE format('
@@ -100,27 +112,30 @@ BEGIN
                 INNER JOIN here.%I routing_grid ON routing_grid.id = djk.edge
             ),
             insert_links AS (
-                INSERT INTO congestion.%I (segment_id, start_vid, end_vid, link_dir, geom, length)
+                INSERT INTO congestion.%I (segment_id, start_vid, end_vid, link_dir, geom, length, ver_id)
                 SELECT 
                     segment_id,
                     start_vid,
                     end_vid,
                     link_dir,
                     geom,
-                    cost
+                    cost,
+                    %L
                 FROM results
             )
-            INSERT INTO congestion.%I (segment_id, start_vid, end_vid, geom, dir,total_length)
+            INSERT INTO congestion.%I (segment_id, start_vid, end_vid, total_length, dir,highway, geom, ver_id)
             SELECT 
                 segment_id,
                 start_vid,
                 end_vid,
-                ST_linemerge(ST_union(geom)),
+                SUM(cost), 
                 gis.direction_from_line(ST_union(geom)) AS dir,
-                SUM(cost)
+                null as highway,
+                ST_linemerge(ST_union(geom)),
+                %L
             FROM results
             GROUP BY segment_id, start_vid, end_vid
-        ', max_segment_id, _start_vid, _end_vid, routing_sql, _routing_streets_table, _temp_network_links_table, _temp_network_segments_table);
+        ', max_segment_id, _start_vid, _end_vid, routing_sql, _routing_streets_table, _temp_network_links_table, _ver_id, _temp_network_segments_table, _ver_id);
 
         RAISE NOTICE 'segment_id % inserted successfully from % to % using tables: %, %, %', 
             max_segment_id, _start_vid, _end_vid, _routing_streets_table, _temp_network_links_table, _temp_network_segments_table;
@@ -130,8 +145,9 @@ BEGIN
 END;
 $BODY$;
 
-COMMENT ON FUNCTION congestion.add_new_segments(integer, integer, text, text, text, boolean)
+COMMENT ON FUNCTION congestion.add_new_segments(integer, integer, text, text, text, text, text, boolean)
+
 IS 'Add new segments to both link and segments table.';
 
-ALTER FUNCTION congestion.add_new_segments(integer, integer, text, text, text, boolean)
+ALTER FUNCTION congestion.add_new_segments(integer, integer, text, text, text, text, text, boolean)
     OWNER TO congestion_admins;
