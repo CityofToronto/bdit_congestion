@@ -18,30 +18,50 @@ DECLARE
     prev_table text := 'congestion_nodes_lookup_' || old_ver;
 	nodes_table text := 'temp_congestion_nodes_' || new_ver;
     source_table text := 'temp_int_px_nodes_' || new_ver;
-    intersection_ver text := 'intersection_' || centreline_ver;
+    intersection_ver text := 'centreline_intersection_point_' || centreline_ver;
+    centreline_table text := 'centreline_' || centreline_ver;
 BEGIN
 
     -- Create the new lookup table from the previous version with existing ints
     EXECUTE format('
         CREATE TABLE congestion.%I AS
-        SELECT  DISTINCT 
-                prev.node_id, 
-				prev.intersection_id, 
-				prev.px, 
-				ic.intersection_desc,
-				ic.highest_order_feature,
-				nodes.geom AS geom,
-				COALESCE(a.geom, prev.int_geom) AS int_geom, -- if intersection does not have a geom we use the old one
-				%L AS ver_id	
-        FROM congestion.%I prev
-        INNER JOIN congestion.%I nodes USING (node_id)
-        LEFT JOIN gis_core.%I a on a.intersection_id = prev.intersection_id
-		LEFT JOIN gis_core.intersection_classification ic on ic.intersection_id = prev.intersection_id
-    ', new_table, new_ver, prev_table, nodes_table, intersection_ver);
+     	WITH highest_order_table AS 
+    	(select intersection_id, intersection_desc, array_length(array_agg(centreline_id), 1) AS degree,
+    		(array_agg(feature_code_desc ORDER BY feature_code))[1] AS highest_order_feature, geom
+    	FROM gis_core.%I
+    	left join (select from_intersection_id AS intersection_id, centreline_id, feature_code, feature_code_desc 
+    				from gis_core.%I
+    				union 
+    				select to_intersection_id, centreline_id, feature_code, feature_code_desc 
+    				from gis_core.%I) AS a USING (intersection_id)
+    	group by intersection_id, intersection_desc, geom)
+            SELECT  DISTINCT 
+                    prev.node_id, 
+    				prev.intersection_id, 
+    				prev.px, 
+    				ic.intersection_desc,
+    				ic.highest_order_feature,
+    				nodes.geom AS geom,
+    				COALESCE(ic.geom, prev.int_geom) AS int_geom, -- if intersection does not have a geom we use the old one
+    				%L AS ver_id	
+            FROM congestion.%I prev
+            INNER JOIN congestion.%I nodes USING (node_id)
+    		LEFT JOIN highest_order_table ic on ic.intersection_id = prev.intersection_id
+    ', new_table, intersection_ver, centreline_table, centreline_table,new_ver, prev_table, nodes_table);
 
     -- Insert new nodes lookup from previous steps
     EXECUTE format('
         INSERT INTO congestion.%s
+        WITH highest_order_table AS 
+    	(select intersection_id, intersection_desc, array_length(array_agg(centreline_id), 1) AS degree,
+    		(array_agg(feature_code_desc ORDER BY feature_code))[1] AS highest_order_feature, geom
+    	FROM gis_core.%I
+    	left join (select from_intersection_id AS intersection_id, centreline_id, feature_code, feature_code_desc 
+    				from gis_core.%I
+    				union 
+    				select to_intersection_id, centreline_id, feature_code, feature_code_desc 
+    				from gis_core.%I) AS a USING (intersection_id)
+    	group by intersection_id, intersection_desc, geom)
         SELECT
             n.node_id,
             n.intersection_id,
@@ -52,9 +72,9 @@ BEGIN
             n.int_geom,
             %L AS ver_id
         FROM congestion.%s n
-        LEFT JOIN gis_core.intersection_classification ic 
-            USING (intersection_id)
-    ', new_table, new_ver, source_table);
+        LEFT JOIN gis_core.%I a USING (intersection_id)
+        LEFT JOIN highest_order_table ic on ic.intersection_id = a.intersection_id
+    ', new_table, intersection_ver, centreline_table, centreline_table, new_ver, source_table, intersection_ver);
 
 END;
 $BODY$;
