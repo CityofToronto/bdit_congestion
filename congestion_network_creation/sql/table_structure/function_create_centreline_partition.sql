@@ -15,8 +15,11 @@ BEGIN
     EXECUTE format(
         'CREATE TABLE congestion.%I AS
          SELECT segment_id,
+                streetname,
                 from_int,
+                from_int_desc,
 				to_int,
+                to_int_desc,
 				centreline_ids,
 				centreline_uids,
 				geom,

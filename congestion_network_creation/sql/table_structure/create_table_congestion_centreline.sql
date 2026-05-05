@@ -1,8 +1,11 @@
 CREATE TABLE IF NOT EXISTS congestion.congestion_centreline
 (
     segment_id bigint,
+    streetname text,
     from_int integer,
+    from_int_desc text,
 	to_int integer,
+    to_int_desc text,
 	centreline_ids int[],
     centreline_uids text[],
 	geom geometry ,
