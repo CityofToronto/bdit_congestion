@@ -68,8 +68,11 @@ BEGIN
                 ) AS route)
             	
             SELECT d.segment_id, 
+                    NULL::Text AS streetname,
             		d.from_int, 
+                    NULL::Text AS from_int_desc,
             		d.to_int, 
+                    NULL::Text AS to_int_desc,
             		array_agg(r.centreline_id ORDER BY path_seq) AS centreline_ids,
             		array_agg(r.centreline_uid ORDER BY path_seq) AS centreline_uids,
             		ST_LineMerge(ST_Union(r.geom)) AS geom

@@ -33,7 +33,8 @@ BEGIN
 			LEFT JOIN temp USING (segment_id)
 			WHERE temp.segment_id is null)
 			
-			SELECT  segment_id, from_int, to_int, 
+			SELECT  segment_id, NULL::Text AS streetname, from_int, NULL::Text AS from_int_desc,
+            to_int, NULL::Text AS to_int_desc,
 					array_agg(centreline_id) AS centreline_ids,
 					array_agg(centreline_uid) AS uids,
 					ST_LineMerge(ST_Union(geom)) AS geom
