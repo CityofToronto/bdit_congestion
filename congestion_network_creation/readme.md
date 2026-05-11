@@ -8,7 +8,7 @@ The network is refreshed annually following the HERE map update schedule. Each r
 
 The current coverage of the congestion network in the City of Toronto contains approximately ~6000 segments.
 
-(congestion_network_creation/congestion_network_extend.png)
+![image](https://github.com/user-attachments/assets/3d5dce94-ed0f-4afb-9176-d3c4a64a9905)
 
 ## How is a congestion segment defined?
 
