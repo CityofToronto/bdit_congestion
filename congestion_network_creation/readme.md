@@ -1,10 +1,45 @@
 # Congestion Network
 
-## Background
+## What is the Congestion Network?
 
-The congestion network is a grid based road network developed to support congestion and reliability analysis. The network is built using HERE street links, which includes streets classified a minor artieral and above. Segments are divided at at centreline intersections, and traffic signals. The network is refreshed annually following the HERE map update schedule, with each release can be identified with `ver_id` used in all partitioned table for this network.
+The congestion network is a grid based road network developed to support congestion and reliability analysis. The network is built using HERE street links, and are segmented at centreline intersections. 
+
+The network is refreshed annually following the HERE map update schedule. Each release can be identified with the `ver_id` column used in all partitioned table for the congestion network.
+
+The current coverage of the congestion network in the City of Toronto contains approximately ~6000 segments.
+
+(congestion_network_creation/congestion_network_extend.png)
+
+## How is a congestion segment defined?
+
+### Intersections
+
+Each segment in the congestion network starts and ends at either:
+- an intersection, 
+- or at a traffic signal location. 
+
+Only minor arterial, Major Arterials, and Expressway intersections based on the centreline intersection layer would be considered as an intersection. 
+
+Midblock traffic signals that do not have an equivalent centreline intersections are currently not included as an intersection. These locations are reviewed annually during the network refresh process to determine whether a new centreline intersection has been introduced to those midblock traffic signals.
 
 
+### Road
+
+The congestion network includes roadway segments classified as:
+- Minor Arterial, 
+- Major Arterials, 
+- Expressways.
+
+Some collectors that have been previously requested are included as well. Overpasses, or roads that doesn’t actually intersect in real life are not treated as intersections within the congestion network. (e.g. A segment would not start at an intersection of a road and a river.)
+
+### Open Data centreline conflation
+
+For publishing on Open Data, we conflated the HERE-based network segments to the centreline layer. This allows the public to reference congestion network to any other data sources on open data that are based on centreline. Learn more about how we conflate [here](#conflation-to-the-centreline).
+
+
+> [!IMPORTANT]
+> Before you start joining the following tables to other aggregated stats table, it is importatnt to make sure that the travel time data you are using matches the street network. Refer to the data `here.street_valid_range_path_hm` for the corresponding street version. 
+> For example, if you are selecting speed data from 2024-01-01 to 2024-04-01, the corresponding street version is `24_4`. Relevant `ver_id` you should filter with should be `24_4`.  
 
 ## Table Structure
 
@@ -121,3 +156,31 @@ Returns the congestion network segments between two network nodes using shortest
 ```sql
 SELECT * FROM congestion.get_congestion_segments_btwn_nodes(30363068, 30414684, '25_1')
 ```
+
+## Useful queries
+
+Use the result of the routing function to select the monthly TTI for each routed segments.
+
+```sql
+SELECT monthly_data.*
+FROM (
+    SELECT unnest(segment_list) segment_id FROM congestion.   get_congestion_segments_btwn_nodes(30363068, 30414684, '25_1')) AS routes
+INNER JOIN here_agg.segments_bootstrap_monthly monthly_data USING (segment_id)
+WHERE dow_group = 'Mon-Fri'  
+    AND mnth = '2026-01-01'
+    AND ver_id = '25_1'
+``` 
+
+## Conflation to the centreline
+
+To support Open Data publication, the congestion network is conflated to the City of Toronto centreline dataset using a combination of graph contraction and shortest-path routing functions available in pg_routing. 
+
+Congestion network nodes are first matched to centreline intersections using nearest-neighbour matching. Because the congestion network and centreline datasets are constructed differently, additional node consolidation is performed in cases where roadway geometry does not align directly between the two networks. For example, left-turn channels that exist as separate roadway features in the congestion network are often consolidated into the main roadway to match the representation used in the centreline dataset. Once intersections and nodes are consolidated, the network is contracted using the matched centreline intersections to generate continuous routing paths between valid intersections. These contracted paths are then used as the base routing network to conflate each congestion segment. Turn restrictions are applied during routing to prevent paths from traversing non-real (e.g. routing into a river) intersections. Where contraction-based routing is not available, additional shortest-path routing with turn restrictions is used to complete the conflation process.
+
+Example of node consolidation
+
+![image](https://github.com/user-attachments/assets/fdd0ec59-254f-48b7-a8c5-865ad5d6e1ec)
+
+Example of centreline conflation result
+
+![image](https://github.com/user-attachments/assets/a432bdc0-1bfb-4659-a573-e5f432c86b62)
