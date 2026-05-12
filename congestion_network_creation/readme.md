@@ -20,7 +20,7 @@ Each segment in the congestion network starts and ends at either:
 
 Only minor arterial, Major Arterials, and Expressway intersections based on the centreline intersection layer would be considered as an intersection. 
 
-Midblock traffic signals that do not have an equivalent centreline intersections are currently not included as an intersection. These locations are reviewed annually during the network refresh process to determine whether a new centreline intersection has been introduced to those midblock traffic signals.
+Midblock traffic signals that do not have an equivalent centreline intersections are currently not included as an intersection. These locations are reviewed annually during the network refresh process to determine whether a new centreline intersection has been introduced to those midblock traffic signals using the table `congestion.excluded_signals`.
 
 
 ### Road
