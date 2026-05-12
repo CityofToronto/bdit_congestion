@@ -184,3 +184,10 @@ Example of node consolidation
 Example of centreline conflation result
 
 ![image](https://github.com/user-attachments/assets/a432bdc0-1bfb-4659-a573-e5f432c86b62)
+
+### Version of centreline used for each congestion version
+
+| Congestion version      | Centreline Version   | 
+| ----------------- | ----------- | 
+| `24_4`      | `20260119`    |
+| `25_1`      | `20260301`    |
