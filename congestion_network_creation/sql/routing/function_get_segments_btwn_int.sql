@@ -74,4 +74,4 @@ GRANT EXECUTE ON FUNCTION congestion.get_congestion_segments_btwn_ints(integer, 
 GRANT EXECUTE ON FUNCTION congestion.get_congestion_segments_btwn_ints(integer, integer, text) TO congestion_admins;
 
 COMMENT ON FUNCTION congestion.get_congestion_segments_btwn_ints(integer, integer, text)
-    IS 'Functions to input start and end node_id and return the congestion segments in between those two input.';
+    IS 'Functions to input start and end centreline intersection_id and return the congestion segments in between those two input.';
