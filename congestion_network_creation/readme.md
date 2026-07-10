@@ -130,7 +130,7 @@ Store lookup between retired congestion network segments and their replacement s
     
 ## Useful functions
 
-`congestion.get_congestion_segments_btwn_nodes`
+### `congestion.get_congestion_segments_btwn_nodes`
 
 Returns the congestion network segments between two network nodes using shortest path routing across the congestion network.
 
@@ -147,14 +147,79 @@ Returns the congestion network segments between two network nodes using shortest
 | -------------- | ----------- | ---------------------------------------------------------------------------- |
 | `start_node`   | `integer`   | Input start node ID.                                                         |
 | `end_node`     | `integer`   | Input end node ID.                                                           |
-| `segment_list` | `integer[]` | Ordered array of congestion segment IDs forming the route between the nodes. |
+| `segment_list` | `integer[]` | Ordered array of congestion segment_id forming the route between the nodes. |
 | `length`       | `numeric`   | Total combined length in metres.                                                |
 | `geom`         | `geometry`  | Combined geometry of the route.                                              |
 
 ### Example: 
 
 ```sql
-SELECT * FROM congestion.get_congestion_segments_btwn_nodes(30363068, 30414684, '25_1')
+SELECT * FROM congestion.get_congestion_segments_btwn_nodes(
+    30363068, 30414684, '25_1')
+```
+
+### `congestion.get_congestion_segments_btwn_ints`
+
+Returns the congestion network segments between two centreline intersection using shortest path routing across the congestion network.
+The function considers all congestion network nodes associated with the input intersection_id, computes the shortest path for each possible start and end node pair, and returns the shortest overall route. This is necessary for when one centreline intersection_id is related to multiple congestion nodes (e.g. streets with median).
+
+### Input:
+
+| Parameter   | Type      | Description                                          |
+| ----------- | --------- | ---------------------------------------------------- |
+| `start_vid` | `integer` | Starting centreline intersection_id.                 |
+| `end_vid`   | `integer` | Ending centreline intersection_id.                   |
+| `ver_id`    | `text`    | Congestion network version identifier (e.g. `25_1`). |
+
+### Output:
+| Output Column  | Type        | Description                                                                  |
+| -------------- | ----------- | ---------------------------------------------------------------------------- |
+| `start_node`   | `integer`   | Input start node ID.                                                         |
+| `end_node`     | `integer`   | Input end node ID.                                                           |
+| `segment_list` | `integer[]` | Ordered array of congestion segment_id forming the route between the nodes. |
+| `length`       | `numeric`   | Total combined length in metres.                                                |
+| `geom`         | `geometry`  | Combined geometry of the route.                                              |
+
+### Example: 
+
+```sql
+SELECT * FROM congestion.get_congestion_segments_btwn_ints(
+    13461167, 13460848, '25_1')
+```
+
+### `congestion.get_congestion_segments_btwn_streets`
+
+Returns the congestion network segments between two intersections along a main street by first resolving the intersection IDs and then computing the shortest path across the congestion network.
+
+If either intersection cannot be matched, the function raises an exception indicating which intersection could not be resolved.
+
+### Input:
+
+| Parameter        | Type   | Description                                                                                  |
+| ---------------- | ------ | -------------------------------------------------------------------------------------------- |
+| `main_street`    | `text` | Name of the main street shared by the start and end intersections (e.g. `Yonge St`).         |
+| `start_street`   | `text` | Cross street defining the start intersection (e.g. `Eglinton Ave`).                          |
+| `end_street`     | `text` | Cross street defining the end intersection (e.g. `Davisville Ave`).                          |
+| `ver_id`         | `text` | Congestion network version identifier (e.g. `25_1`).                                         |
+
+### Output:
+
+| Output Column  | Type        | Description                                                                         |
+| -------------- | ----------- | ----------------------------------------------------------------------------------- |
+| `start_node`   | `integer`   | Congestion network node_id corresponding to the start intersection.        |
+| `end_node`     | `integer`   | Congestion network node_id corresponding to the end intersection.          |
+| `segment_list` | `integer[]` | Ordered array of congestion segment_id forming the shortest path between the nodes.|
+| `length`       | `numeric`   | Total combined route length in metres.                                              |
+| `geom`         | `geometry`  | Combined geometry of the routed congestion segments.                                |
+
+
+### Example
+
+```sql
+SELECT *
+FROM congestion.get_congestion_segments_btwn_streets(
+    'Yonge St', 'Eglinton Ave', 'Davisville Ave', '25_1'
+);
 ```
 
 ## Useful queries
